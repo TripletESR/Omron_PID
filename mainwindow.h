@@ -3,8 +3,9 @@
 
 #include <QMainWindow>
 #include <QtSerialPort>
-//#include <QDebug>
-//#include <QObject>
+#include <QModbusClient>
+#include <QModbusDataUnit>
+#include <QModbusRtuSerialMaster>
 #include <QScrollBar>
 
 namespace Ui {
@@ -21,17 +22,29 @@ public:
 
     void LogMsg(QString str);
     void findSeriesPortDevices();
-    void write2SerialPort(const QString &msg);
-    QString readFromSerialPort();
+
+private slots:
+    // copy from web
+    quint16 crc16ForModbus(const QByteArray &data);
+
+    void on_pushButton_Ask_clicked();
+
+    void read(QModbusDataUnit::RegisterType type, quint16 adress, int size, int respondFlag);
+    void readReady();
+
+    void askTemperature();
+
+    void write();
 
 private:
     Ui::MainWindow *ui;
 
-    QSerialPort * omron;
+    QModbusRtuSerialMaster * omron;
 
     QString omronPortName;
 
     int msgCount;
+    int respondType;
 };
 
 #endif // MAINWINDOW_H

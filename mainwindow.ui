@@ -18,9 +18,9 @@
     <property name="geometry">
      <rect>
       <x>50</x>
-      <y>20</y>
+      <y>74</y>
       <width>541</width>
-      <height>225</height>
+      <height>171</height>
      </rect>
     </property>
     <property name="title">
@@ -31,6 +31,29 @@
       <widget class="QTextEdit" name="textEdit_Log"/>
      </item>
     </layout>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_Cmd">
+    <property name="geometry">
+     <rect>
+      <x>70</x>
+      <y>30</y>
+      <width>261</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Ask">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>30</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Ask</string>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
