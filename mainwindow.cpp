@@ -14,9 +14,34 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     msgCount = 0;
 
+
+    ui->comboBox_Func->addItem("0x00 Invalid", QModbusPdu::Invalid);
+    ui->comboBox_Func->addItem("0x01 Read Coils", QModbusPdu::ReadCoils);
+    ui->comboBox_Func->addItem("0x02 Read Discrte Inputs", QModbusPdu::ReadDiscreteInputs);
+    ui->comboBox_Func->addItem("0x03 Read Holding Registers", QModbusPdu::ReadHoldingRegisters);
+    ui->comboBox_Func->addItem("0x04 Read Input Registers", QModbusPdu::ReadInputRegisters);
+    ui->comboBox_Func->addItem("0x05 Write Single Coil", QModbusPdu::WriteSingleCoil);
+    ui->comboBox_Func->addItem("0x06 Write Single Register", QModbusPdu::WriteSingleRegister);
+    ui->comboBox_Func->addItem("0x07 Read Exception Status", QModbusPdu::ReadExceptionStatus);
+    ui->comboBox_Func->addItem("0x08 Diagonstics", QModbusPdu::Diagnostics);
+    ui->comboBox_Func->addItem("0x0B Get Comm Event Counter", QModbusPdu::GetCommEventCounter);
+    ui->comboBox_Func->addItem("0x0C Get Comm Event Log", QModbusPdu::GetCommEventLog);
+    ui->comboBox_Func->addItem("0x0f Write Multiple Coils", QModbusPdu::WriteMultipleCoils);
+    ui->comboBox_Func->addItem("0x10 Write Multiple Registers", QModbusPdu::WriteMultipleRegisters);
+    ui->comboBox_Func->addItem("0x11 Report Server ID", QModbusPdu::ReportServerId);
+    ui->comboBox_Func->addItem("0x14 Read File Record", QModbusPdu::ReadFileRecord);
+    ui->comboBox_Func->addItem("0x15 Write File Record", QModbusPdu::WriteFileRecord);
+    ui->comboBox_Func->addItem("0x16 Mask Write Register", QModbusPdu::MaskWriteRegister);
+    ui->comboBox_Func->addItem("0x17 Read Write Multiple Registers", QModbusPdu::ReadWriteMultipleRegisters);
+    ui->comboBox_Func->addItem("0x18 Read Fifo Queue", QModbusPdu::ReadFifoQueue);
+    ui->comboBox_Func->addItem("0x2B Encapsulated Interface Transport", QModbusPdu::EncapsulatedInterfaceTransport);
+    ui->comboBox_Func->addItem("0x100 Undefined Function Code", QModbusPdu::UndefinedFunctionCode);
+
+
     findSeriesPortDevices();
 
     LogMsg("=========== setting modbus.");
+    omronID = 1;
     omron = new QModbusRtuSerialMaster(this);
     omron->setConnectionParameter(QModbusDevice::SerialPortNameParameter, omronPortName);
     omron->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, QSerialPort::Baud9600);
@@ -80,6 +105,17 @@ void MainWindow::findSeriesPortDevices()
         }
     }
     LogMsg ("--------------");
+}
+
+void MainWindow::showDataUnit(QModbusDataUnit unit)
+{
+    qDebug() << "Type :" << unit.registerType();
+    qDebug() << "Start Address" << unit.startAddress();
+    qDebug() << "number of values" << unit.valueCount();
+    qDebug() << unit.values();
+    //for( int i = 0; i < unit.valueCount(); i++ ){
+    //    qDebug() << i << " = " << unit.value(i);
+    //}
 }
 
 quint16 MainWindow::crc16ForModbus(const QByteArray &data)
@@ -159,7 +195,7 @@ void MainWindow::read(QModbusDataUnit::RegisterType type, quint16 adress, int si
     QModbusDataUnit ans(type, adress, size);
     respondType = respondFlag;
 
-    if (auto *reply = omron->sendReadRequest(ans, 1)) {
+    if (auto *reply = omron->sendReadRequest(ans, omronID)) {
         if (!reply->isFinished()){
             connect(reply, &QModbusReply::finished, this, &MainWindow::readReady);
         }else{
@@ -172,6 +208,8 @@ void MainWindow::read(QModbusDataUnit::RegisterType type, quint16 adress, int si
 
 void MainWindow::readReady()
 {
+
+    LogMsg("------ reading, " + QString::number(respondType));
     auto reply = qobject_cast<QModbusReply *>(sender());
 
     if (!reply)
@@ -179,14 +217,15 @@ void MainWindow::readReady()
 
     if (reply->error() == QModbusDevice::NoError) {
         const QModbusDataUnit unit = reply->result();
-        if( respondType == other){
+        if(respondType == temp){
+            QString temp = tr("Temperature : %1 C").arg(QString::number(unit.value(1), 10));
+            LogMsg(temp);
+        }else{
+            LogMsg("respond count: " + QString::number(unit.valueCount()));
             for (uint i = 0; i < unit.valueCount(); i++) {
                 const QString entry = tr("Address: %1, Value: %2").arg(unit.startAddress()).arg(QString::number(unit.value(i), 10));
                 LogMsg(entry);
             }
-        }else if(respondType == temp){
-            QString temp = tr("Temperature : %1 C").arg(QString::number(unit.value(1), 10));
-            LogMsg(temp);
         }
 
     } else if (reply->error() == QModbusDevice::ProtocolError) {
@@ -209,29 +248,28 @@ void MainWindow::askTemperature()
 
 void MainWindow::write()
 {
-    //QModbusDataUnit put(QModbusDataUnit::HoldingRegisters, 0x0000, 1);
-    //put.setValue(0, 0x20ab);
-    //modbus->sendWriteRequest(put, 1);
+    if (!omron) return;
+    statusBar()->clearMessage();
 
-    QString aa = "0x0300000002";
-    QModbusPdu pdu;
-    pdu.setFunctionCode(QModbusPdu::ReadHoldingRegisters);
-    QByteArray dd = QByteArray::fromHex("00 00 00 02");
-    pdu.setData(dd);
-    qDebug() << pdu;
+    QModbusDataUnit writeUnit;
 
-    QModbusRequest ask(pdu);
+    //QModbusDataUnit::RegisterType table = writeUnit.registerType();
+    //for (uint i = 0; i < writeUnit.valueCount(); i++) {
+    //    if (table == QModbusDataUnit::Coils)
+    //        writeUnit.setValue(i, writeModel->m_coils[i + writeUnit.startAddress()]);
+    //    else
+    //        writeUnit.setValue(i, writeModel->m_holdingRegisters[i + writeUnit.startAddress()]);
+    //}
 
-    if (auto *reply = modbus->sendRawRequest(ask,1)) {
+    if (auto *reply = omron->sendWriteRequest(writeUnit, omronID)) {
         if (!reply->isFinished()) {
             connect(reply, &QModbusReply::finished, this, [this, reply]() {
                 if (reply->error() == QModbusDevice::ProtocolError) {
                     statusBar()->showMessage(tr("Write response error: %1 (Mobus exception: 0x%2)")
-                        .arg(reply->errorString()).arg(reply->rawResult().exceptionCode(), -1, 16),
-                        5000);
+                        .arg(reply->errorString()).arg(reply->rawResult().exceptionCode(), -1, 16), 0);
                 } else if (reply->error() != QModbusDevice::NoError) {
                     statusBar()->showMessage(tr("Write response error: %1 (code: 0x%2)").
-                        arg(reply->errorString()).arg(reply->error(), -1, 16), 5000);
+                        arg(reply->errorString()).arg(reply->error(), -1, 16), 0);
                 }
                 reply->deleteLater();
             });
@@ -239,9 +277,52 @@ void MainWindow::write()
             // broadcast replies return immediately
             reply->deleteLater();
         }
-
     } else {
-        statusBar()->showMessage(tr("Write error: ") + modbus->errorString(), 0);
+        statusBar()->showMessage(tr("Write error: ") + omron->errorString(), 5000);
     }
+
+}
+
+void MainWindow::request(QByteArray cmd)
+{
+    QModbusPdu pdu;
+    bool ok = false;
+    QModbusPdu::FunctionCode regType = static_cast<QModbusPdu::FunctionCode> (ui->comboBox_Func->currentData().toInt());
+    pdu.setFunctionCode(regType);
+    pdu.setData(cmd);
+    qDebug() << pdu;
+
+    QModbusRequest ask(pdu);
+
+    if( ui->checkBox_EnableSend->isChecked()){
+        if (auto *reply = omron->sendRawRequest(ask, omronID)) {
+            if (!reply->isFinished()) {
+                connect(reply, &QModbusReply::finished, this, [this, reply]() {
+                    if (reply->error() == QModbusDevice::ProtocolError) {
+                        statusBar()->showMessage(tr("Write response error: %1 (Mobus exception: 0x%2)")
+                            .arg(reply->errorString()).arg(reply->rawResult().exceptionCode(), -1, 16), 0);
+                    } else if (reply->error() != QModbusDevice::NoError) {
+                        statusBar()->showMessage(tr("Write response error: %1 (code: 0x%2)").
+                            arg(reply->errorString()).arg(reply->error(), -1, 16), 0);
+                    }
+                    reply->deleteLater();
+                });
+            } else {
+                // broadcast replies return immediately
+                reply->deleteLater();
+            }
+
+        } else {
+            statusBar()->showMessage(tr("Write error: ") + omron->errorString(), 0);
+        }
+    }
+}
+
+void MainWindow::on_lineEdit_Cmd_returnPressed()
+{
+    QString input = ui->lineEdit_Cmd->text();
+    QByteArray value = QByteArray::fromHex(input.toStdString().c_str());
+
+    request(value);
 
 }

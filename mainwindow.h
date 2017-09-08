@@ -23,6 +23,8 @@ public:
     void LogMsg(QString str);
     void findSeriesPortDevices();
 
+    void showDataUnit(QModbusDataUnit unit);
+
 private slots:
     // copy from web
     quint16 crc16ForModbus(const QByteArray &data);
@@ -31,10 +33,13 @@ private slots:
 
     void read(QModbusDataUnit::RegisterType type, quint16 adress, int size, int respondFlag);
     void readReady();
+    void write();
+    void request(QByteArray cmd);
 
     void askTemperature();
 
-    void write();
+
+    void on_lineEdit_Cmd_returnPressed();
 
 private:
     Ui::MainWindow *ui;
@@ -42,6 +47,7 @@ private:
     QModbusRtuSerialMaster * omron;
 
     QString omronPortName;
+    int omronID;
 
     int msgCount;
     int respondType;
