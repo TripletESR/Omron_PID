@@ -7,82 +7,153 @@
     <x>0</x>
     <y>0</y>
     <width>700</width>
-    <height>494</height>
+    <height>606</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Omron Temp. Control</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <widget class="QGroupBox" name="groupBox">
-    <property name="geometry">
-     <rect>
-      <x>50</x>
-      <y>240</y>
-      <width>541</width>
-      <height>171</height>
-     </rect>
-    </property>
-    <property name="title">
-     <string>Log Massage</string>
-    </property>
-    <layout class="QGridLayout" name="gridLayout">
-     <item row="0" column="0">
-      <widget class="QTextEdit" name="textEdit_Log"/>
-     </item>
-    </layout>
-   </widget>
-   <widget class="QPushButton" name="pushButton_Ask">
-    <property name="geometry">
-     <rect>
-      <x>600</x>
-      <y>20</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Ask Temp</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="lineEdit_Address">
-    <property name="geometry">
-     <rect>
-      <x>380</x>
-      <y>60</y>
-      <width>113</width>
-      <height>20</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QGroupBox" name="groupBox_2">
-    <property name="geometry">
-     <rect>
-      <x>30</x>
-      <y>30</y>
-      <width>211</width>
-      <height>121</height>
-     </rect>
-    </property>
-    <property name="title">
-     <string>Raw request</string>
-    </property>
-    <layout class="QGridLayout" name="gridLayout_2">
-     <item row="2" column="0">
-      <widget class="QLineEdit" name="lineEdit_Cmd"/>
-     </item>
-     <item row="1" column="0">
-      <widget class="QComboBox" name="comboBox_Func"/>
-     </item>
-     <item row="0" column="0">
-      <widget class="QCheckBox" name="checkBox_EnableSend">
-       <property name="text">
-        <string>Send When Entered</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
+   <layout class="QGridLayout" name="gridLayout_4" rowstretch="1,1,1">
+    <item row="0" column="1">
+     <widget class="QGroupBox" name="groupBox_3">
+      <property name="title">
+       <string>Temp. Control</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="3" column="2">
+        <widget class="QPushButton" name="pushButton_SetSV">
+         <property name="text">
+          <string>Set SV</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="lineEdit_Temp">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Current Temp. :</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="lineEdit_SV">
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QPushButton" name="pushButton_AskTemp">
+         <property name="text">
+          <string>Ask Temp</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="lineEdit_CurrentSV">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Set SV [C] :</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>Current SV :</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="3">
+        <widget class="QPushButton" name="pushButton_Control">
+         <property name="text">
+          <string>Control</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="2" column="0" colspan="2">
+     <widget class="QGroupBox" name="groupBox">
+      <property name="title">
+       <string>Log Massage</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="0">
+        <widget class="QTextEdit" name="textEdit_Log"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <widget class="QGroupBox" name="groupBox_2">
+      <property name="title">
+       <string>Raw request</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_2" columnstretch="1,1">
+       <item row="3" column="0" colspan="2">
+        <widget class="QComboBox" name="comboBox_Func"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="QCheckBox" name="checkBox_EnableSend">
+         <property name="text">
+          <string>Send When Entered</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="2">
+        <widget class="QLineEdit" name="lineEdit_Cmd"/>
+       </item>
+       <item row="1" column="1">
+        <widget class="QComboBox" name="comboBox_AT">
+         <property name="currentIndex">
+          <number>-1</number>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QCheckBox" name="checkBox_RunSop">
+         <property name="text">
+          <string>Run/Stop</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="1" column="0" colspan="2">
+     <widget class="QCustomPlot" name="plot" native="true"/>
+    </item>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -105,6 +176,24 @@
   <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>QCustomPlot</class>
+   <extends>QWidget</extends>
+   <header>qcustomplot.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>comboBox_Func</tabstop>
+  <tabstop>lineEdit_Cmd</tabstop>
+  <tabstop>lineEdit_SV</tabstop>
+  <tabstop>textEdit_Log</tabstop>
+  <tabstop>pushButton_AskTemp</tabstop>
+  <tabstop>pushButton_SetSV</tabstop>
+  <tabstop>checkBox_EnableSend</tabstop>
+  <tabstop>lineEdit_Temp</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

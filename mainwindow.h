@@ -7,6 +7,7 @@
 #include <QModbusDataUnit>
 #include <QModbusRtuSerialMaster>
 #include <QScrollBar>
+#include <qcustomplot.h>
 
 namespace Ui {
 class MainWindow;
@@ -26,23 +27,34 @@ public:
     void showDataUnit(QModbusDataUnit unit);
 
 private slots:
-    // copy from web
-    quint16 crc16ForModbus(const QByteArray &data);
-
-    void on_pushButton_Ask_clicked();
+    QString formatHex(int value, int digit);
+    void waitForMSec(int msec);
+    void panalOnOff(bool IO);
 
     void read(QModbusDataUnit::RegisterType type, quint16 adress, int size, int respondFlag);
     void readReady();
-    void write();
-    void request(QByteArray cmd);
+    void write(int address, int value);
+    void request(QModbusPdu::FunctionCode code, QByteArray cmd); // no PDU reply
 
-    void askTemperature();
+    void askTemperature(int waitTime = 500);
+    void askSetPoint(int waitTime = 500);
+    void setAT(int atFlag);
 
-
+    void on_pushButton_AskTemp_clicked();
     void on_lineEdit_Cmd_returnPressed();
+    void on_pushButton_SetSV_clicked();
+    void on_pushButton_Control_clicked();
+
+    void on_lineEdit_Cmd_textChanged(const QString &arg1);
+
+    void on_comboBox_AT_currentIndexChanged(int index);
+
+    void on_checkBox_RunSop_clicked();
 
 private:
     Ui::MainWindow *ui;
+
+    QCustomPlot * plot;
 
     QModbusRtuSerialMaster * omron;
 
@@ -51,6 +63,15 @@ private:
 
     int msgCount;
     int respondType;
+
+    int temperature, SV;
+
+    bool tempControlOnOff;
+    bool modbusReady;
+    bool atComboxEnable;
+
+    QVector<QCPGraphData> timeData;
+
 };
 
 #endif // MAINWINDOW_H
