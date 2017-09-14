@@ -162,7 +162,7 @@ void MainWindow::showDataUnit(QModbusDataUnit unit)
 
 QString MainWindow::formatHex(int value, int digit)
 {
-    QString valueStr = QString::number(value, 16);
+    QString valueStr = QString::number(value, 16).toUpper();
     while(valueStr.size() < digit){
         valueStr.insert(0, "0");
     }
@@ -351,16 +351,6 @@ void MainWindow::request(QModbusPdu::FunctionCode code, QByteArray cmd)
     pdu.setData(cmd);
     qDebug() << pdu; //TODO show in LogMsg
 
-    qDebug() << QString::number(pdu.functionCode(),16);
-
-    qDebug() << cmd;
-    qDebug() << pdu.data();
-    qDebug() << pdu.dataSize();
-
-    qDebug() << cmd[0];
-    qDebug() << cmd[1];
-    qDebug() << cmd[2];
-
     QModbusRequest ask(pdu);
 
     if (auto *reply = omron->sendRawRequest(ask, omronID)) {
@@ -394,11 +384,14 @@ void MainWindow::on_lineEdit_Cmd_returnPressed()
     QByteArray value = QByteArray::fromHex(input.toStdString().c_str());
     QModbusPdu::FunctionCode regType = static_cast<QModbusPdu::FunctionCode> (ui->comboBox_Func->currentData().toInt());
     if( ui->checkBox_EnableSend->isChecked()){
+        LogMsg("(Send) PDU = 0x " + formatHex( static_cast<int>(regType), 2) + " "+ input);
         request(regType, value);
         while(!modbusReady){
             waitForMSec(100);
             qDebug() << "waiting for request done....";
         }
+    }else{
+        LogMsg("(No Send) PDU = 0x " + formatHex( static_cast<int>(regType), 2) + " "+ input);
     }
 }
 
