@@ -188,6 +188,7 @@ void MainWindow::panalOnOff(bool IO)
     ui->comboBox_AT->setEnabled(IO);
     ui->pushButton_AskTemp->setEnabled(IO);
     ui->pushButton_SetSV->setEnabled(IO);
+    ui->spinBox_temp->setEnabled(IO);
 }
 
 void MainWindow::on_pushButton_AskTemp_clicked()
@@ -428,7 +429,7 @@ void MainWindow::on_pushButton_Control_clicked()
 
         //Looping ========================
         const int sv = ui->lineEdit_SV->text().toInt();
-        const int tempGetTime = 2000;
+        const int tempGetTime = ui->spinBox_temp->value();
 
         askTemperature();
         LogMsg("Target Temperature          : " + QString::number(sv) + " C.");
