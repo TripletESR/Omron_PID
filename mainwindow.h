@@ -51,6 +51,10 @@ private slots:
 
     void on_checkBox_RunSop_clicked();
 
+    void on_pushButton_RecordTemp_clicked();
+
+    void on_pushButton_ReadRH_clicked();
+
 private:
     Ui::MainWindow *ui;
 
@@ -67,6 +71,7 @@ private:
     int temperature, SV;
 
     bool tempControlOnOff;
+    bool tempRecordOnOff;
     bool modbusReady;
     bool atComboxEnable;
 

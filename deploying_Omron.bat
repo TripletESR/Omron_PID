@@ -8,9 +8,9 @@ echo =====================================================
 pause
 
 Set name=Omron_PID.exe
-Set origin=%desktop%\build-Omron_PID-Desktop_Qt_5_8_0_MinGW_32bit-Release\release
+Set origin=%desktop%\build-Omron_PID-Desktop_Qt_5_7_0_MinGW_32bit-Release\release
 Set destination=%desktop%\Omron_PID_release\
-Set compiler=C:\Qt\5.8\mingw53_32\bin\
+Set compiler=C:\Qt\5.7\mingw53_32\bin\
 
 rem -----------------------------------------
 echo =====================================================

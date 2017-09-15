@@ -26,6 +26,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     msgCount = 0;
     tempControlOnOff = false;
+    tempRecordOnOff = false;
     modbusReady = true;
 
     plot = ui->plot;
@@ -34,7 +35,7 @@ MainWindow::MainWindow(QWidget *parent) :
     plot->addGraph();
     plot->graph(0)->setPen(QPen(Qt::blue));
     QSharedPointer<QCPAxisTickerDateTime> dateTicker(new QCPAxisTickerDateTime);
-    dateTicker->setDateTimeFormat("dd HH:mm:ss");
+    dateTicker->setDateTimeFormat("MM/dd HH:mm:ss");
     plot->xAxis->setTicker(dateTicker);
     plot->xAxis2->setVisible(true);
     plot->yAxis2->setVisible(true);
@@ -89,10 +90,11 @@ MainWindow::MainWindow(QWidget *parent) :
         LogMsg("The Omron temperature control is connected in " + omronPortName + ".");
 
         askTemperature();
+        waitForMSec(1000);
         askSetPoint();
 
-        ui->checkBox_RunSop->setChecked(false);
-        on_checkBox_RunSop_clicked();
+        //ui->checkBox_RunSop->setChecked(false);
+        //on_checkBox_RunSop_clicked();
 
     }else{
         LogMsg("The Omron temperature control cannot be found on any COM port.");
@@ -194,6 +196,7 @@ void MainWindow::panalOnOff(bool IO)
 void MainWindow::on_pushButton_AskTemp_clicked()
 {
     askTemperature();
+    waitForMSec(1000);
     askSetPoint();
 }
 
@@ -261,19 +264,19 @@ void MainWindow::readReady()
 void MainWindow::askTemperature(int waitTime)
 {
     read(QModbusDataUnit::HoldingRegisters, 0x0000, 2, Respond_Type::temp);
-    while(!modbusReady){
-        waitForMSec(waitTime);
-        qDebug() << "waiting for temp reading ....";
-    }
+    //while(!modbusReady){
+    //    waitForMSec(waitTime);
+    //    qDebug() << "waiting for temp reading ....";
+    //}
 }
 
 void MainWindow::askSetPoint(int waitTime)
 {
     read(QModbusDataUnit::HoldingRegisters, 0x0106, 2, Respond_Type::SV);
-    while(!modbusReady){
-        waitForMSec(waitTime);
-        qDebug() << "waiting for SV reading ....";
-    }
+    //while(!modbusReady){
+    //    waitForMSec(waitTime);
+    //    qDebug() << "waiting for SV reading ....";
+    //}
 }
 
 void MainWindow::setAT(int atFlag)
@@ -387,10 +390,10 @@ void MainWindow::on_lineEdit_Cmd_returnPressed()
     if( ui->checkBox_EnableSend->isChecked()){
         LogMsg("(Send) PDU = 0x " + formatHex( static_cast<int>(regType), 2) + " "+ input);
         request(regType, value);
-        while(!modbusReady){
-            waitForMSec(100);
-            qDebug() << "waiting for request done....";
-        }
+        //while(!modbusReady){
+        //    waitForMSec(100);
+        //    qDebug() << "waiting for request done....";
+        //}
     }else{
         LogMsg("(No Send) PDU = 0x " + formatHex( static_cast<int>(regType), 2) + " "+ input);
     }
@@ -411,25 +414,23 @@ void MainWindow::on_pushButton_SetSV_clicked()
 void MainWindow::on_pushButton_Control_clicked()
 {
     tempControlOnOff = !tempControlOnOff;
+    panalOnOff(!tempControlOnOff);
 
     if(tempControlOnOff) {
         LogMsg("================ Temperature control =====");
-        panalOnOff(false);
+        ui->pushButton_Control->setStyleSheet("background-color: rgb(0,255,0)");
     }else{
         LogMsg("================ Temperature control Off =====");
         ui->pushButton_Control->setStyleSheet("");
-        panalOnOff(true);
         qDebug()  << "temp control. = " << tempControlOnOff;
         return;
     }
 
     if(tempControlOnOff){
-        panalOnOff(!tempControlOnOff);
-        ui->pushButton_Control->setStyleSheet("background-color: rgb(0,255,0)");
 
         //Looping ========================
         const int sv = ui->lineEdit_SV->text().toInt();
-        const int tempGetTime = ui->spinBox_temp->value();
+        const int tempGetTime = ui->spinBox_temp->value() * 1000;
 
         askTemperature();
         LogMsg("Target Temperature          : " + QString::number(sv) + " C.");
@@ -467,7 +468,7 @@ void MainWindow::on_pushButton_Control_clicked()
             if(!tempControlOnOff) break;
 
             //Set SV
-            bool check = false;
+            //bool check = false;
             const int sp = (temperature == sv) ? sv : temperature + direction  ;
             QString valueStr = formatHex(sp, 8);
             QString addressStr = formatHex(E5CC_Address::setPoint, 4);
@@ -475,10 +476,10 @@ void MainWindow::on_pushButton_Control_clicked()
             QString cmd = addressStr + " 00 02 04" + valueStr;
             QByteArray value = QByteArray::fromHex(cmd.toStdString().c_str());
             request(QModbusPdu::WriteMultipleRegisters, value);
-            while(!modbusReady){
-                waitForMSec(100);
-                qDebug() << "waiting ....";
-            }
+            //while(!modbusReady){
+            //    waitForMSec(100);
+            //    qDebug() << "waiting ....";
+            //}
 
             askSetPoint();
             qDebug() << "============" << i;
@@ -488,6 +489,8 @@ void MainWindow::on_pushButton_Control_clicked()
             do{
                 qDebug()  << "temp control. do-loop 1 = " << tempControlOnOff;
                 if(!tempControlOnOff) break;
+
+                askTemperature();
 
                 QDateTime date = QDateTime::currentDateTime();
                 QCPGraphData plotdata;
@@ -511,14 +514,17 @@ void MainWindow::on_pushButton_Control_clicked()
 
                 plot->replot();
 
-                askTemperature(tempGetTime);
+                waitForMSec(tempGetTime-500);
 
                 if( temperature == sp ){
                     count += tempGetTime;
-                    LogMsg( " temperature stable count : " +  QString::number(count));
+                    LogMsg( " temperature stable for : " +  QString::number(count/1000.) + " sec.");
+                }else{
+                    count = 0;
+                    LogMsg( " temperature over-shoot. reset stable counter.");
                 }
 
-            }while( count < 60000  || tempControlOnOff ); // if temperature stable for 1 min
+            }while( count < 600000  && tempControlOnOff ); // if temperature stable for 10 min
 
             if(temperature == sv) {
                 //LogMsg("=========== Target Temperature Reached =============");
@@ -534,7 +540,7 @@ void MainWindow::on_pushButton_Control_clicked()
         //only measure temperature
         while(tempControlOnOff){
             qDebug()  << "temp control. do-loop 2 = " << tempControlOnOff;
-            askTemperature(tempGetTime);
+            askTemperature();
 
             QDateTime date = QDateTime::currentDateTime();
             QCPGraphData plotdata;
@@ -558,6 +564,8 @@ void MainWindow::on_pushButton_Control_clicked()
 
             plot->replot();
 
+            waitForMSec(tempGetTime-500);
+
         };
 
         stream << "============ end of file ==============";
@@ -571,7 +579,7 @@ void MainWindow::on_pushButton_Control_clicked()
 
 void MainWindow::on_lineEdit_Cmd_textChanged(const QString &arg1)
 {
-    ui->lineEdit_Cmd->setText(arg1.toUpper());
+    //ui->lineEdit_Cmd->setText(arg1.toUpper());
 }
 
 void MainWindow::on_comboBox_AT_currentIndexChanged(int index)
@@ -593,4 +601,85 @@ void MainWindow::on_checkBox_RunSop_clicked()
     }
     QByteArray value = QByteArray::fromHex(cmd.toStdString().c_str());
     request(QModbusPdu::WriteSingleRegister, value);
+}
+
+void MainWindow::on_pushButton_RecordTemp_clicked()
+{
+    tempRecordOnOff = !tempRecordOnOff;
+    ui->spinBox_temp->setEnabled(!tempRecordOnOff);
+    ui->pushButton_Control->setEnabled(!tempRecordOnOff);
+
+    if(tempRecordOnOff){
+        LogMsg("===================== Recording temperature Start.");
+        ui->pushButton_RecordTemp->setStyleSheet("background-color: rgb(0,255,0)");
+    }else{
+        LogMsg("===================== Recording temperature Stopped.");
+        ui->pushButton_RecordTemp->setStyleSheet("");
+    }
+
+    if( tempRecordOnOff){
+        const int tempGetTime = ui->spinBox_temp->value() * 1000;
+
+        // set output file =================
+        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "_tempRecord.dat";
+        QString filePath = DESKTOP_PATH + "/" + fileName;
+        LogMsg("data save to : " + filePath);
+        QFile outfile(filePath);
+
+        outfile.open(QIODevice::WriteOnly);
+        QTextStream stream(&outfile);
+        QString lineout;
+
+        lineout.sprintf("###%s", QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss\n").toStdString().c_str());
+        stream << lineout;
+        lineout = "Temperature Record.\n";
+        stream << lineout;
+        lineout.sprintf("%14s\t%12s\t%10s\n", "Date", "Date_t", "temp [C]");
+        stream << lineout;
+
+        timeData.clear();
+
+        //only measure temperature
+        while(tempRecordOnOff){
+            qDebug()  << "Recording Temp. = " << tempControlOnOff;
+            askTemperature(500);
+
+            QDateTime date = QDateTime::currentDateTime();
+            QCPGraphData plotdata;
+            plotdata.key = date.toTime_t();
+            plotdata.value = temperature;
+
+            lineout.sprintf("%14s\t%12.0f\t%10f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
+            stream << lineout;
+
+            timeData.push_back(plotdata);
+            plot->graph(0)->data()->clear();
+            plot->graph(0)->data()->add(timeData);
+            plot->yAxis->rescale();
+            plot->xAxis->rescale();
+
+            double ymin = plot->yAxis->range().lower - 2;
+            double ymax = plot->yAxis->range().upper + 2;
+
+            plot->yAxis->setRangeLower(ymin);
+            plot->yAxis->setRangeUpper(ymax);
+
+            plot->replot();
+
+            waitForMSec(tempGetTime-500);
+
+        };
+
+        stream << "============ end of file ==============";
+        outfile.close();
+
+    }
+
+}
+
+void MainWindow::on_pushButton_ReadRH_clicked()
+{
+    bool ok = false;
+    quint16 address = ui->lineEdit_Cmd->text().toUInt(&ok,16);
+    read(QModbusDataUnit::HoldingRegisters, address, 2, Respond_Type::other);
 }

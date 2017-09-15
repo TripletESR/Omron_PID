@@ -92,13 +92,6 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="0" colspan="3">
-        <widget class="QPushButton" name="pushButton_Control">
-         <property name="text">
-          <string>Slow Temperature Control</string>
-         </property>
-        </widget>
-       </item>
        <item row="4" column="1">
         <widget class="QSpinBox" name="spinBox_temp">
          <property name="alignment">
@@ -122,6 +115,20 @@
          </property>
         </widget>
        </item>
+       <item row="5" column="1" colspan="2">
+        <widget class="QPushButton" name="pushButton_Control">
+         <property name="text">
+          <string>Slow Temperature Control</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QPushButton" name="pushButton_RecordTemp">
+         <property name="text">
+          <string>Record Temp.</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
@@ -140,21 +147,15 @@
     <item row="0" column="0">
      <widget class="QGroupBox" name="groupBox_2">
       <property name="title">
-       <string>Raw request</string>
+       <string>E5CC control</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_2" columnstretch="1,1">
-       <item row="3" column="0" colspan="2">
-        <widget class="QComboBox" name="comboBox_Func"/>
-       </item>
        <item row="1" column="0">
         <widget class="QCheckBox" name="checkBox_EnableSend">
          <property name="text">
           <string>Send When Entered</string>
          </property>
         </widget>
-       </item>
-       <item row="4" column="0" colspan="2">
-        <widget class="QLineEdit" name="lineEdit_Cmd"/>
        </item>
        <item row="1" column="1">
         <widget class="QComboBox" name="comboBox_AT">
@@ -163,10 +164,23 @@
          </property>
         </widget>
        </item>
+       <item row="3" column="0" colspan="2">
+        <widget class="QComboBox" name="comboBox_Func"/>
+       </item>
+       <item row="4" column="0" colspan="2">
+        <widget class="QLineEdit" name="lineEdit_Cmd"/>
+       </item>
        <item row="0" column="0">
         <widget class="QCheckBox" name="checkBox_RunSop">
          <property name="text">
           <string>Run/Stop</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QPushButton" name="pushButton_ReadRH">
+         <property name="text">
+          <string>Read From Holding Register</string>
          </property>
         </widget>
        </item>
