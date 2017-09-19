@@ -47,7 +47,6 @@ private slots:
     void on_pushButton_SetSV_clicked();
     void on_pushButton_Control_clicked();
 
-    void on_lineEdit_Cmd_textChanged(const QString &arg1);
     void on_comboBox_AT_currentIndexChanged(int index);
     void on_checkBox_RunSop_clicked();
     void on_pushButton_RecordTemp_clicked();
@@ -55,7 +54,6 @@ private slots:
     void on_spinBox_DeviceAddress_valueChanged(int arg1);
 
     void on_pushButton_OpenFile_clicked();
-
     void on_pushButton_Connect_clicked();
 
 private:

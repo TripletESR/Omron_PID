@@ -82,6 +82,11 @@ MainWindow::MainWindow(QWidget *parent) :
 
     findSeriesPortDevices();
     omron = NULL;
+
+    panalOnOff(false);
+    ui->pushButton_Control->setEnabled(false);
+    ui->pushButton_RecordTemp->setEnabled(false);
+
 }
 
 MainWindow::~MainWindow()
@@ -253,7 +258,7 @@ void MainWindow::readReady()
 
 void MainWindow::askTemperature(int waitTime)
 {
-    read(QModbusDataUnit::HoldingRegisters, 0x0000, 2, Respond_Type::temp);
+    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PV, 2, Respond_Type::temp);
     //while(!modbusReady){
     //    waitForMSec(waitTime);
     //    qDebug() << "waiting for temp reading ....";
@@ -262,7 +267,7 @@ void MainWindow::askTemperature(int waitTime)
 
 void MainWindow::askSetPoint(int waitTime)
 {
-    read(QModbusDataUnit::HoldingRegisters, 0x0106, 2, Respond_Type::SV);
+    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::setPoint, 2, Respond_Type::SV);
     //while(!modbusReady){
     //    waitForMSec(waitTime);
     //    qDebug() << "waiting for SV reading ....";
@@ -443,12 +448,6 @@ void MainWindow::on_pushButton_Control_clicked()
         askTemperature();
         LogMsg("Target Temperature          : " + QString::number(sv) + " C.");
 
-        //if( sv == temperature) {
-        //    LogMsg("Target Temperature = Current Temperature.");
-        //    ui->pushButton_Sweep->setStyleSheet("");
-        //    return;
-        //}
-
         //const int tempStep = qAbs(temperature - sv) / tempStepSize;
         const int direction = (temperature > sv ) ? -1 : 1;
         //LogMsg("Temperature step : " + QString::number(tempStep));
@@ -471,10 +470,7 @@ void MainWindow::on_pushButton_Control_clicked()
         stream << lineout;
 
         timeData.clear();
-        //for(int i = 0; i < tempStep ; i++){
         while(tempControlOnOff){
-            //if(!tempControlOnOff) break;
-
             //Set SV
             double sp = sv;
             if(qAbs(temperature-sv) >= tempStepSize){
@@ -543,9 +539,6 @@ void MainWindow::on_pushButton_Control_clicked()
 
         }
 
-
-        //LogMsg("=========== Target Temperature Reached =============");
-
         //=========== now is the E5CC control
         //only measure temperature
         while(tempControlOnOff){
@@ -585,11 +578,6 @@ void MainWindow::on_pushButton_Control_clicked()
         ui->pushButton_Control->setStyleSheet("");
         tempControlOnOff = false;
     }
-}
-
-void MainWindow::on_lineEdit_Cmd_textChanged(const QString &arg1)
-{
-    //ui->lineEdit_Cmd->setText(arg1.toUpper());
 }
 
 void MainWindow::on_comboBox_AT_currentIndexChanged(int index)
@@ -753,16 +741,16 @@ void MainWindow::on_pushButton_OpenFile_clicked()
 void MainWindow::on_pushButton_Connect_clicked()
 {
     QString omronPortName = ui->comboBox_SeriesNumber->currentData().toString();
-        LogMsg("=========== setting modbus.");
-        omronID = ui->spinBox_DeviceAddress->value();
-        omron = new QModbusRtuSerialMaster(this);
-        omron->setConnectionParameter(QModbusDevice::SerialPortNameParameter, omronPortName);
-        omron->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, QSerialPort::Baud9600);
-        omron->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::Data8);
-        omron->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::NoParity);
-        omron->setConnectionParameter(QModbusDevice::SerialStopBitsParameter, QSerialPort::TwoStop);
-        omron->setTimeout(2000);
-        omron->setNumberOfRetries(0);
+    LogMsg("=========== setting modbus.");
+    omronID = ui->spinBox_DeviceAddress->value();
+    omron = new QModbusRtuSerialMaster(this);
+    omron->setConnectionParameter(QModbusDevice::SerialPortNameParameter, omronPortName);
+    omron->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, QSerialPort::Baud9600);
+    omron->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::Data8);
+    omron->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::NoParity);
+    omron->setConnectionParameter(QModbusDevice::SerialStopBitsParameter, QSerialPort::TwoStop);
+    omron->setTimeout(2000);
+    omron->setNumberOfRetries(0);
 
     if(omron->connectDevice()){
         ui->textEdit_Log->setTextColor(QColor(0,0,255,255));
@@ -772,6 +760,9 @@ void MainWindow::on_pushButton_Connect_clicked()
         ui->comboBox_SeriesNumber->setEnabled(false);
         ui->pushButton_Connect->setStyleSheet("background-color: rgb(255,127,80)");
         ui->pushButton_Connect->setEnabled(false);
+        panalOnOff(true);
+        ui->pushButton_Control->setEnabled(true);
+        ui->pushButton_RecordTemp->setEnabled(true);
 
         askTemperature();
         waitForMSec(1000);
