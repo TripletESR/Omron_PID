@@ -56,6 +56,8 @@ private slots:
 
     void on_pushButton_OpenFile_clicked();
 
+    void on_pushButton_Connect_clicked();
+
 private:
     Ui::MainWindow *ui;
 

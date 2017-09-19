@@ -81,34 +81,7 @@ MainWindow::MainWindow(QWidget *parent) :
     atComboxEnable = true;
 
     findSeriesPortDevices();
-    LogMsg("=========== setting modbus.");
-    omronID = ui->spinBox_DeviceAddress->value();
-    omron = new QModbusRtuSerialMaster(this);
-    omron->setConnectionParameter(QModbusDevice::SerialPortNameParameter, omronPortName);
-    omron->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, QSerialPort::Baud9600);
-    omron->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::Data8);
-    omron->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::NoParity);
-    omron->setConnectionParameter(QModbusDevice::SerialStopBitsParameter, QSerialPort::TwoStop);
-    omron->setTimeout(2000);
-    omron->setNumberOfRetries(0);
-
-    if(omron->connectDevice()){
-        ui->textEdit_Log->setTextColor(QColor(0,0,255,255));
-        LogMsg("The Omron temperature control is connected in " + omronPortName + ".");
-        ui->textEdit_Log->setTextColor(QColor(0,0,0,255));
-        askTemperature();
-        waitForMSec(1000);
-        askSetPoint();
-
-        //ui->checkBox_RunSop->setChecked(false);
-        //on_checkBox_RunSop_clicked();
-
-    }else{
-        ui->textEdit_Log->setTextColor(QColor(255,0,0,255));
-        LogMsg("The Omron temperature control cannot be found on any COM port.");
-        ui->textEdit_Log->setTextColor(QColor(0,0,0,255));
-    }
-
+    omron = NULL;
 }
 
 MainWindow::~MainWindow()
@@ -151,10 +124,12 @@ void MainWindow::findSeriesPortDevices()
 
         LogMsg(info.portName() + ", " + info.serialNumber() + ", " + info.manufacturer());
 
-        if(info.serialNumber() == "FT0875RPA" && info.manufacturer() == "FTDI" ){
-            omronPortName = info.portName();
-            qDebug() << omronPortName;
-        }
+        ui->comboBox_SeriesNumber->addItem( info.serialNumber(), (QString) info.portName());
+
+        //if(info.serialNumber() == "FT0875RPA" && info.manufacturer() == "FTDI" ){
+        //    omronPortName = info.portName();
+        //    qDebug() << omronPortName;
+        //}
     }
     LogMsg ("--------------");
 }
@@ -772,5 +747,42 @@ void MainWindow::on_pushButton_OpenFile_clicked()
     plot->yAxis->setRangeUpper(ymax);
 
     plot->replot();
+
+}
+
+void MainWindow::on_pushButton_Connect_clicked()
+{
+    QString omronPortName = ui->comboBox_SeriesNumber->currentData().toString();
+        LogMsg("=========== setting modbus.");
+        omronID = ui->spinBox_DeviceAddress->value();
+        omron = new QModbusRtuSerialMaster(this);
+        omron->setConnectionParameter(QModbusDevice::SerialPortNameParameter, omronPortName);
+        omron->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, QSerialPort::Baud9600);
+        omron->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::Data8);
+        omron->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::NoParity);
+        omron->setConnectionParameter(QModbusDevice::SerialStopBitsParameter, QSerialPort::TwoStop);
+        omron->setTimeout(2000);
+        omron->setNumberOfRetries(0);
+
+    if(omron->connectDevice()){
+        ui->textEdit_Log->setTextColor(QColor(0,0,255,255));
+        LogMsg("The Omron temperature control is connected in " + omronPortName + ".");
+        ui->textEdit_Log->setTextColor(QColor(0,0,0,255));
+
+        ui->comboBox_SeriesNumber->setEnabled(false);
+        ui->pushButton_Connect->setStyleSheet("background-color: rgb(255,127,80)");
+        ui->pushButton_Connect->setEnabled(false);
+
+        askTemperature();
+        waitForMSec(1000);
+        askSetPoint();
+
+    }else{
+        ui->textEdit_Log->setTextColor(QColor(255,0,0,255));
+        LogMsg("The Omron temperature control cannot be found on any COM port.");
+        ui->textEdit_Log->setTextColor(QColor(0,0,0,255));
+        ui->comboBox_SeriesNumber->setEnabled(true);
+        ui->pushButton_Connect->setStyleSheet("");
+    }
 
 }
