@@ -54,6 +54,8 @@ private slots:
     void on_pushButton_ReadRH_clicked();
     void on_spinBox_DeviceAddress_valueChanged(int arg1);
 
+    void on_pushButton_OpenFile_clicked();
+
 private:
     Ui::MainWindow *ui;
 
@@ -67,7 +69,8 @@ private:
     int msgCount;
     int respondType;
 
-    int temperature, SV;
+    double temperature, SV;
+    double tempDecimal;
 
     bool tempControlOnOff;
     bool tempRecordOnOff;

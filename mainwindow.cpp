@@ -29,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
     tempControlOnOff = false;
     tempRecordOnOff = false;
     modbusReady = true;
+    tempDecimal = 0.1; // for 0.1
 
     //Check Temp Directory, is not exist, create
     QDir myDir;
@@ -202,6 +203,9 @@ void MainWindow::panalOnOff(bool IO)
     ui->spinBox_TempRecordTime->setEnabled(IO);
     ui->spinBox_TempStableTime->setEnabled(IO);
     ui->spinBox_DeviceAddress->setEnabled(IO);
+    ui->doubleSpinBox_TempTorr->setEnabled(IO);
+    ui->doubleSpinBox_TempStepSize->setEnabled(IO);
+    ui->pushButton_OpenFile->setEnabled(IO);
 }
 
 void MainWindow::on_pushButton_AskTemp_clicked()
@@ -240,13 +244,13 @@ void MainWindow::readReady()
     if (reply->error() == QModbusDevice::NoError) {
         const QModbusDataUnit unit = reply->result();
         if(respondType == Respond_Type::temp){
-            QString tempStr = tr("Current Temperature : %1 C").arg(QString::number(unit.value(1), 10));
-            temperature = QString::number(unit.value(1), 10).toInt();
+            temperature = QString::number(unit.value(1), 10).toDouble() * tempDecimal;
+            QString tempStr = tr("Current Temperature : %1 C").arg(QString::number(temperature));
             ui->lineEdit_Temp->setText(QString::number(temperature) + " C");
             LogMsg(tempStr);
         }else if(respondType == Respond_Type::SV){
-            QString svStr = tr("Current Set Point : %1 C").arg(QString::number(unit.value(1), 10));
-            SV = QString::number(unit.value(1), 10).toInt();
+            SV = QString::number(unit.value(1), 10).toDouble() * tempDecimal;
+            QString svStr = tr("Current Set Point : %1 C").arg(QString::number(SV));
             ui->lineEdit_CurrentSV->setText(QString::number(SV) + " C");
             LogMsg(svStr);
         }else{
@@ -423,7 +427,11 @@ void MainWindow::on_lineEdit_Cmd_returnPressed()
 void MainWindow::on_pushButton_SetSV_clicked()
 {
     statusBar()->clearMessage();
-    QString valueStr = formatHex(ui->lineEdit_SV->text().toInt(), 8);
+    double sv = ui->lineEdit_SV->text().toDouble();
+    double sv_input = sv / tempDecimal;
+    int sv_2 = (qint16) (sv_input + 0.5);
+    qDebug() << sv_input << "," << sv_2;
+    QString valueStr = formatHex(sv_2, 8);
     QString addressStr = formatHex(E5CC_Address::setPoint, 4);
 
     QString cmd = addressStr + " 00 02 04" + valueStr;
@@ -451,9 +459,11 @@ void MainWindow::on_pushButton_Control_clicked()
     if(tempControlOnOff){
 
         //Looping ========================
-        const int sv = ui->lineEdit_SV->text().toInt();
+        const double sv = ui->lineEdit_SV->text().toDouble();
         const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000;
         const int tempStableTime = ui->spinBox_TempStableTime->value() * 60 * 1000;
+        const double tempTorr = ui->doubleSpinBox_TempTorr->value();
+        const double tempStepSize = ui->doubleSpinBox_TempStepSize->value();
 
         askTemperature();
         LogMsg("Target Temperature          : " + QString::number(sv) + " C.");
@@ -464,9 +474,9 @@ void MainWindow::on_pushButton_Control_clicked()
         //    return;
         //}
 
-        const int tempDiff = qAbs(temperature - sv);
+        //const int tempStep = qAbs(temperature - sv) / tempStepSize;
         const int direction = (temperature > sv ) ? -1 : 1;
-        LogMsg("Temperature different (abs) : " + QString::number(tempDiff));
+        //LogMsg("Temperature step : " + QString::number(tempStep));
 
         // set output file =================
         QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "_tempControl_ID="+ QString::number(omronID) +".dat";
@@ -475,39 +485,37 @@ void MainWindow::on_pushButton_Control_clicked()
         QFile outfile(filePath);
 
         outfile.open(QIODevice::WriteOnly);
-
         QTextStream stream(&outfile);
         QString lineout;
 
         lineout.sprintf("###%s", QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss\n").toStdString().c_str());
         stream << lineout;
-        lineout = "Target Temperature          : " + QString::number(sv) + " C.\n";
+        lineout = "###Target Temperature          : " + QString::number(sv) + " C.\n";
         stream << lineout;
-        lineout.sprintf("%14s\t%12s\t%10s\n", "Date", "Date_t", "temp [C]");
+        lineout.sprintf("###%11s,\t%12s,\t%10s\n", "Date", "Date_t", "temp [C]");
         stream << lineout;
 
         timeData.clear();
-        for(int i = 0; i < tempDiff ; i++){
-            if(!tempControlOnOff) break;
+        //for(int i = 0; i < tempStep ; i++){
+        while(tempControlOnOff){
+            //if(!tempControlOnOff) break;
 
             //Set SV
-            //bool check = false;
-            const int sp = (temperature == sv) ? sv : temperature + direction  ;
-            QString valueStr = formatHex(sp, 8);
+            double sp = sv;
+            if(qAbs(temperature-sv) >= tempStepSize){
+                sp = temperature + direction * tempStepSize  ;
+            }
+            double sp_input = sp / tempDecimal;
+            int sp_2 = (qint16) (sp_input + 0.5);
+            qDebug() << sp_input << "," << sp_2;
+            QString valueStr = formatHex(sp_2, 8);
             QString addressStr = formatHex(E5CC_Address::setPoint, 4);
 
             QString cmd = addressStr + " 00 02 04" + valueStr;
             QByteArray value = QByteArray::fromHex(cmd.toStdString().c_str());
             request(QModbusPdu::WriteMultipleRegisters, value);
             ui->lineEdit_CurrentSV->setText(QString::number(sp) + " C");
-            //while(!modbusReady){
-            //    waitForMSec(100);
-            //    qDebug() << "waiting ....";
-            //}
-
-            askSetPoint();
-            qDebug() << "============" << i;
-
+            LogMsg("========= try to go to " + QString::number(sp) + " C.");
 
             int count = 0;
             do{
@@ -521,7 +529,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 plotdata.key = date.toTime_t();
                 plotdata.value = temperature;
 
-                lineout.sprintf("%14s\t%12.0f\t%10f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
+                lineout.sprintf("%14s,\t%12.0f,\t%10f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
                 stream << lineout;
 
                 timeData.push_back(plotdata);
@@ -540,25 +548,28 @@ void MainWindow::on_pushButton_Control_clicked()
 
                 waitForMSec(tempGetTime-500);
 
-                if( temperature == sp ){
+                if( qAbs(temperature - sp) <= tempTorr ){
                     count += tempGetTime;
-                    LogMsg( " temperature stable for : " +  QString::number(count/1000.) + " sec.");
+                    LogMsg( " temperature stable for : " +  QString::number(count/1000.) + " sec. |"
+                            +QString::number(sp) + " - " + QString::number(temperature) + "| < "  + QString::number(tempTorr) + " C");
                 }else{
+                    if(count > 0){
+                        LogMsg( " temperature over-shoot. reset stable counter.");
+                    }
                     count = 0;
-                    LogMsg( " temperature over-shoot. reset stable counter.");
                 }
 
             }while( count < tempStableTime  && tempControlOnOff ); // if temperature stable for 10 min
 
-            if(temperature == sv) {
-                //LogMsg("=========== Target Temperature Reached =============");
+            if( qAbs(temperature - sv)< tempTorr) {
+                LogMsg("=========== Target Temperature Reached =============");
                 break;
             }
 
         }
 
 
-        LogMsg("=========== Target Temperature Reached =============");
+        //LogMsg("=========== Target Temperature Reached =============");
 
         //=========== now is the E5CC control
         //only measure temperature
@@ -571,7 +582,7 @@ void MainWindow::on_pushButton_Control_clicked()
             plotdata.key = date.toTime_t();
             plotdata.value = temperature;
 
-            lineout.sprintf("%14s\t%12.0f\t%10f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
+            lineout.sprintf("%14s\t%12.0f\t%10.1f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
             stream << lineout;
 
             timeData.push_back(plotdata);
@@ -592,7 +603,7 @@ void MainWindow::on_pushButton_Control_clicked()
 
         };
 
-        stream << "============ end of file ==============";
+        stream << "###============ end of file ==============";
         outfile.close();
 
         panalOnOff(true);
@@ -658,9 +669,9 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
 
         lineout.sprintf("###%s", QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss\n").toStdString().c_str());
         stream << lineout;
-        lineout = "Temperature Record.\n";
+        lineout = "###Temperature Record.\n";
         stream << lineout;
-        lineout.sprintf("%14s\t%12s\t%10s\n", "Date", "Date_t", "temp [C]");
+        lineout.sprintf("###%11s,\t%12s,\t%10s\n", "Date", "Date_t", "temp [C]");
         stream << lineout;
 
         timeData.clear();
@@ -676,7 +687,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             plotdata.value = temperature;
             //plotdata.value = qrand();
 
-            lineout.sprintf("%14s\t%12.0f\t%10f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
+            lineout.sprintf("%14s,\t%12.0f,\t%10.1f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
             stream << lineout;
             outfile.flush(); // write to file immedinately, but seem not working...
 
@@ -698,7 +709,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
 
         };
 
-        stream << "============ end of file ==============";
+        stream << "###============ end of file ==============";
         outfile.close();
 
     }
@@ -715,4 +726,51 @@ void MainWindow::on_pushButton_ReadRH_clicked()
 void MainWindow::on_spinBox_DeviceAddress_valueChanged(int arg1)
 {
     omronID = arg1;
+}
+
+void MainWindow::on_pushButton_OpenFile_clicked()
+{
+    QString filePath = QFileDialog::getOpenFileName(this, "Open File", DATA_PATH );
+    QFile infile(filePath);
+
+    if(infile.open(QIODevice::ReadOnly | QIODevice::Text)){
+        LogMsg("Open File : %s" + filePath);
+    }else{
+        LogMsg("Open file failed ");
+        return;
+    }
+
+    QTextStream stream(&infile);
+    QString line;
+
+    timeData.clear();
+    while(stream.readLineInto(&line)){
+        if( line.left(3) == "###") continue;
+
+        QStringList list = line.split(",");
+        if(list.size() != 3) continue;
+        QString time = list[1];
+        QString data = list[2];
+        QCPGraphData plotdata;
+        plotdata.key = time.toInt();
+        plotdata.value = data.toDouble();
+
+        timeData.push_back(plotdata);
+    }
+
+    infile.close();
+
+    plot->graph(0)->data()->clear();
+    plot->graph(0)->data()->add(timeData);
+    plot->yAxis->rescale();
+    plot->xAxis->rescale();
+
+    double ymin = plot->yAxis->range().lower - 2;
+    double ymax = plot->yAxis->range().upper + 2;
+
+    plot->yAxis->setRangeLower(ymin);
+    plot->yAxis->setRangeUpper(ymax);
+
+    plot->replot();
+
 }

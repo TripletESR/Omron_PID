@@ -20,45 +20,11 @@
       <property name="title">
        <string>Temp. Control</string>
       </property>
-      <layout class="QGridLayout" name="gridLayout_3" columnstretch="1,1,1">
-       <item row="6" column="0">
-        <widget class="QPushButton" name="pushButton_RecordTemp">
-         <property name="text">
-          <string>Record Temp.</string>
-         </property>
-        </widget>
-       </item>
+      <layout class="QGridLayout" name="gridLayout_3" columnstretch="1,0,0">
        <item row="3" column="1">
         <widget class="QLineEdit" name="lineEdit_SV">
          <property name="alignment">
           <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <widget class="QPushButton" name="pushButton_AskTemp">
-         <property name="text">
-          <string>Ask Temp</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLineEdit" name="lineEdit_Temp">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>Current Temp. :</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
@@ -69,13 +35,20 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QLineEdit" name="lineEdit_CurrentSV">
-         <property name="enabled">
-          <bool>false</bool>
+       <item row="0" column="2">
+        <widget class="QPushButton" name="pushButton_AskTemp">
+         <property name="text">
+          <string>Ask Temp</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Current Temp. :</string>
          </property>
          <property name="alignment">
-          <set>Qt::AlignCenter</set>
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
@@ -99,13 +72,13 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>Set SV [C] :</string>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="lineEdit_Temp">
+         <property name="enabled">
+          <bool>false</bool>
          </property>
          <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -125,10 +98,23 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="1" colspan="2">
-        <widget class="QPushButton" name="pushButton_Control">
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="lineEdit_CurrentSV">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_2">
          <property name="text">
-          <string>Slow Temperature Control</string>
+          <string>Set SV [C] :</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
@@ -155,6 +141,88 @@
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QDoubleSpinBox" name="doubleSpinBox_TempStepSize">
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+         <property name="decimals">
+          <number>1</number>
+         </property>
+         <property name="minimum">
+          <double>0.100000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>2.000000000000000</double>
+         </property>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
+         </property>
+         <property name="value">
+          <double>0.100000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="label_8">
+         <property name="text">
+          <string>Temp step size [C] :</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="2">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Temp. Toler. [C]</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="2">
+        <widget class="QDoubleSpinBox" name="doubleSpinBox_TempTorr">
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+         <property name="decimals">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <double>1.000000000000000</double>
+         </property>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
+         </property>
+         <property name="value">
+          <double>0.100000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QPushButton" name="pushButton_Control">
+         <property name="text">
+          <string>Slow Temperature Control</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="QPushButton" name="pushButton_RecordTemp">
+         <property name="text">
+          <string>Record Temp.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="2">
+        <widget class="QPushButton" name="pushButton_OpenFile">
+         <property name="text">
+          <string>Open File</string>
          </property>
         </widget>
        </item>
