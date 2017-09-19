@@ -38,6 +38,8 @@ private slots:
 
     void askTemperature(int waitTime = 500);
     void askSetPoint(int waitTime = 500);
+    void askRunStop(int waitTime = 500);
+    void askAT(int waitTime = 500);
     void setAT(int atFlag);
 
     void on_pushButton_AskTemp_clicked();
@@ -46,14 +48,11 @@ private slots:
     void on_pushButton_Control_clicked();
 
     void on_lineEdit_Cmd_textChanged(const QString &arg1);
-
     void on_comboBox_AT_currentIndexChanged(int index);
-
     void on_checkBox_RunSop_clicked();
-
     void on_pushButton_RecordTemp_clicked();
-
     void on_pushButton_ReadRH_clicked();
+    void on_spinBox_DeviceAddress_valueChanged(int arg1);
 
 private:
     Ui::MainWindow *ui;

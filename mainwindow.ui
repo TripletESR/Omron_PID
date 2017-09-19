@@ -21,11 +21,15 @@
        <string>Temp. Control</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_3" columnstretch="1,1,1">
-       <item row="1" column="1">
-        <widget class="QLineEdit" name="lineEdit_CurrentSV">
-         <property name="enabled">
-          <bool>false</bool>
+       <item row="6" column="0">
+        <widget class="QPushButton" name="pushButton_RecordTemp">
+         <property name="text">
+          <string>Record Temp.</string>
          </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="lineEdit_SV">
          <property name="alignment">
           <set>Qt::AlignCenter</set>
          </property>
@@ -35,6 +39,16 @@
         <widget class="QPushButton" name="pushButton_AskTemp">
          <property name="text">
           <string>Ask Temp</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="lineEdit_Temp">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -55,15 +69,8 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
-        <widget class="QLineEdit" name="lineEdit_SV">
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLineEdit" name="lineEdit_Temp">
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="lineEdit_CurrentSV">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -72,10 +79,10 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="label_2">
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_3">
          <property name="text">
-          <string>Set SV [C] :</string>
+          <string>Record temp. every [s] :</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -92,10 +99,23 @@
          </property>
         </widget>
        </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Set SV [C] :</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
        <item row="4" column="1">
-        <widget class="QSpinBox" name="spinBox_temp">
+        <widget class="QSpinBox" name="spinBox_TempRecordTime">
          <property name="alignment">
           <set>Qt::AlignCenter</set>
+         </property>
+         <property name="minimum">
+          <number>1</number>
          </property>
          <property name="maximum">
           <number>500</number>
@@ -105,27 +125,36 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>Temp. time [s] :</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="1" colspan="2">
+       <item row="6" column="1" colspan="2">
         <widget class="QPushButton" name="pushButton_Control">
          <property name="text">
           <string>Slow Temperature Control</string>
          </property>
         </widget>
        </item>
+       <item row="5" column="1">
+        <widget class="QSpinBox" name="spinBox_TempStableTime">
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>120</number>
+         </property>
+         <property name="value">
+          <number>10</number>
+         </property>
+        </widget>
+       </item>
        <item row="5" column="0">
-        <widget class="QPushButton" name="pushButton_RecordTemp">
+        <widget class="QLabel" name="label_6">
          <property name="text">
-          <string>Record Temp.</string>
+          <string>Temp. stable for [min] :</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
@@ -149,38 +178,61 @@
       <property name="title">
        <string>E5CC control</string>
       </property>
-      <layout class="QGridLayout" name="gridLayout_2" columnstretch="1,1">
-       <item row="1" column="0">
+      <layout class="QGridLayout" name="gridLayout_2" columnstretch="1,1,1">
+       <item row="6" column="2">
+        <widget class="QPushButton" name="pushButton_ReadRH">
+         <property name="text">
+          <string>Read From Holding Register</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="3">
+        <widget class="QComboBox" name="comboBox_Func"/>
+       </item>
+       <item row="5" column="0" colspan="3">
+        <widget class="QLineEdit" name="lineEdit_Cmd"/>
+       </item>
+       <item row="6" column="0" colspan="2">
         <widget class="QCheckBox" name="checkBox_EnableSend">
          <property name="text">
           <string>Send When Entered</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QComboBox" name="comboBox_AT">
-         <property name="currentIndex">
-          <number>-1</number>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0" colspan="2">
-        <widget class="QComboBox" name="comboBox_Func"/>
-       </item>
-       <item row="4" column="0" colspan="2">
-        <widget class="QLineEdit" name="lineEdit_Cmd"/>
-       </item>
-       <item row="0" column="0">
+       <item row="2" column="0">
         <widget class="QCheckBox" name="checkBox_RunSop">
          <property name="text">
           <string>Run/Stop</string>
          </property>
         </widget>
        </item>
-       <item row="5" column="1">
-        <widget class="QPushButton" name="pushButton_ReadRH">
+       <item row="0" column="2">
+        <widget class="QSpinBox" name="spinBox_DeviceAddress">
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+         <property name="maximum">
+          <number>247</number>
+         </property>
+         <property name="value">
+          <number>1</number>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="label_5">
          <property name="text">
-          <string>Read From Holding Register</string>
+          <string>Address :</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1" colspan="2">
+        <widget class="QComboBox" name="comboBox_AT">
+         <property name="currentIndex">
+          <number>-1</number>
          </property>
         </widget>
        </item>
@@ -228,7 +280,6 @@
   <tabstop>textEdit_Log</tabstop>
   <tabstop>pushButton_AskTemp</tabstop>
   <tabstop>pushButton_SetSV</tabstop>
-  <tabstop>checkBox_EnableSend</tabstop>
   <tabstop>lineEdit_Temp</tabstop>
  </tabstops>
  <resources/>

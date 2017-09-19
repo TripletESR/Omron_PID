@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 const QString DESKTOP_PATH = QStandardPaths::locate(QStandardPaths::DesktopLocation, QString(), QStandardPaths::LocateDirectory);
+const QString DATA_PATH = DESKTOP_PATH + "Temp_Record";
 
 enum Respond_Type{
     temp = 1,
@@ -28,6 +29,10 @@ MainWindow::MainWindow(QWidget *parent) :
     tempControlOnOff = false;
     tempRecordOnOff = false;
     modbusReady = true;
+
+    //Check Temp Directory, is not exist, create
+    QDir myDir;
+    myDir.setPath(DATA_PATH); if( !myDir.exists()) myDir.mkpath(DATA_PATH);
 
     plot = ui->plot;
     plot->xAxis->setLabel("Time");
@@ -76,7 +81,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     findSeriesPortDevices();
     LogMsg("=========== setting modbus.");
-    omronID = 1;
+    omronID = ui->spinBox_DeviceAddress->value();
     omron = new QModbusRtuSerialMaster(this);
     omron->setConnectionParameter(QModbusDevice::SerialPortNameParameter, omronPortName);
     omron->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, QSerialPort::Baud9600);
@@ -87,8 +92,9 @@ MainWindow::MainWindow(QWidget *parent) :
     omron->setNumberOfRetries(0);
 
     if(omron->connectDevice()){
+        ui->textEdit_Log->setTextColor(QColor(0,0,255,255));
         LogMsg("The Omron temperature control is connected in " + omronPortName + ".");
-
+        ui->textEdit_Log->setTextColor(QColor(0,0,0,255));
         askTemperature();
         waitForMSec(1000);
         askSetPoint();
@@ -97,9 +103,10 @@ MainWindow::MainWindow(QWidget *parent) :
         //on_checkBox_RunSop_clicked();
 
     }else{
+        ui->textEdit_Log->setTextColor(QColor(255,0,0,255));
         LogMsg("The Omron temperature control cannot be found on any COM port.");
+        ui->textEdit_Log->setTextColor(QColor(0,0,0,255));
     }
-
 
 }
 
@@ -186,11 +193,15 @@ void MainWindow::panalOnOff(bool IO)
     ui->lineEdit_Cmd->setEnabled(IO);
     ui->lineEdit_SV->setEnabled(IO);
     ui->checkBox_EnableSend->setEnabled(IO);
+    ui->checkBox_RunSop->setEnabled(IO);
     ui->comboBox_Func->setEnabled(IO);
     ui->comboBox_AT->setEnabled(IO);
+    ui->pushButton_ReadRH->setEnabled(IO);
     ui->pushButton_AskTemp->setEnabled(IO);
     ui->pushButton_SetSV->setEnabled(IO);
-    ui->spinBox_temp->setEnabled(IO);
+    ui->spinBox_TempRecordTime->setEnabled(IO);
+    ui->spinBox_TempStableTime->setEnabled(IO);
+    ui->spinBox_DeviceAddress->setEnabled(IO);
 }
 
 void MainWindow::on_pushButton_AskTemp_clicked()
@@ -277,6 +288,16 @@ void MainWindow::askSetPoint(int waitTime)
     //    waitForMSec(waitTime);
     //    qDebug() << "waiting for SV reading ....";
     //}
+}
+
+void MainWindow::askRunStop(int waitTime)
+{
+
+}
+
+void MainWindow::askAT(int waitTime)
+{
+
 }
 
 void MainWindow::setAT(int atFlag)
@@ -415,6 +436,7 @@ void MainWindow::on_pushButton_Control_clicked()
 {
     tempControlOnOff = !tempControlOnOff;
     panalOnOff(!tempControlOnOff);
+    ui->pushButton_RecordTemp->setEnabled(!tempControlOnOff);
 
     if(tempControlOnOff) {
         LogMsg("================ Temperature control =====");
@@ -430,7 +452,8 @@ void MainWindow::on_pushButton_Control_clicked()
 
         //Looping ========================
         const int sv = ui->lineEdit_SV->text().toInt();
-        const int tempGetTime = ui->spinBox_temp->value() * 1000;
+        const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000;
+        const int tempStableTime = ui->spinBox_TempStableTime->value() * 60 * 1000;
 
         askTemperature();
         LogMsg("Target Temperature          : " + QString::number(sv) + " C.");
@@ -446,8 +469,8 @@ void MainWindow::on_pushButton_Control_clicked()
         LogMsg("Temperature different (abs) : " + QString::number(tempDiff));
 
         // set output file =================
-        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "_tempControl.dat";
-        QString filePath = DESKTOP_PATH + "/" + fileName;
+        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "_tempControl_ID="+ QString::number(omronID) +".dat";
+        QString filePath = DATA_PATH + "/" + fileName;
         LogMsg("data save to : " + filePath);
         QFile outfile(filePath);
 
@@ -476,6 +499,7 @@ void MainWindow::on_pushButton_Control_clicked()
             QString cmd = addressStr + " 00 02 04" + valueStr;
             QByteArray value = QByteArray::fromHex(cmd.toStdString().c_str());
             request(QModbusPdu::WriteMultipleRegisters, value);
+            ui->lineEdit_CurrentSV->setText(QString::number(sp) + " C");
             //while(!modbusReady){
             //    waitForMSec(100);
             //    qDebug() << "waiting ....";
@@ -524,7 +548,7 @@ void MainWindow::on_pushButton_Control_clicked()
                     LogMsg( " temperature over-shoot. reset stable counter.");
                 }
 
-            }while( count < 600000  && tempControlOnOff ); // if temperature stable for 10 min
+            }while( count < tempStableTime  && tempControlOnOff ); // if temperature stable for 10 min
 
             if(temperature == sv) {
                 //LogMsg("=========== Target Temperature Reached =============");
@@ -606,23 +630,25 @@ void MainWindow::on_checkBox_RunSop_clicked()
 void MainWindow::on_pushButton_RecordTemp_clicked()
 {
     tempRecordOnOff = !tempRecordOnOff;
-    ui->spinBox_temp->setEnabled(!tempRecordOnOff);
+    //ui->spinBox_TempRecordTime->setEnabled(!tempRecordOnOff);
     ui->pushButton_Control->setEnabled(!tempRecordOnOff);
+    panalOnOff(!tempRecordOnOff);
 
     if(tempRecordOnOff){
         LogMsg("===================== Recording temperature Start.");
         ui->pushButton_RecordTemp->setStyleSheet("background-color: rgb(0,255,0)");
+        ui->lineEdit_CurrentSV->setText("see device."); // disble for not requesting too often.
     }else{
         LogMsg("===================== Recording temperature Stopped.");
         ui->pushButton_RecordTemp->setStyleSheet("");
     }
 
     if( tempRecordOnOff){
-        const int tempGetTime = ui->spinBox_temp->value() * 1000;
+        const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000;
 
         // set output file =================
-        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "_tempRecord.dat";
-        QString filePath = DESKTOP_PATH + "/" + fileName;
+        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "_tempRecord_ID="+ QString::number(omronID) +".dat";
+        QString filePath = DATA_PATH + "/" + fileName;
         LogMsg("data save to : " + filePath);
         QFile outfile(filePath);
 
@@ -648,9 +674,11 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             QCPGraphData plotdata;
             plotdata.key = date.toTime_t();
             plotdata.value = temperature;
+            //plotdata.value = qrand();
 
             lineout.sprintf("%14s\t%12.0f\t%10f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
             stream << lineout;
+            outfile.flush(); // write to file immedinately, but seem not working...
 
             timeData.push_back(plotdata);
             plot->graph(0)->data()->clear();
@@ -682,4 +710,9 @@ void MainWindow::on_pushButton_ReadRH_clicked()
     bool ok = false;
     quint16 address = ui->lineEdit_Cmd->text().toUInt(&ok,16);
     read(QModbusDataUnit::HoldingRegisters, address, 2, Respond_Type::other);
+}
+
+void MainWindow::on_spinBox_DeviceAddress_valueChanged(int arg1)
+{
+    omronID = arg1;
 }
