@@ -31,18 +31,21 @@ private slots:
     void waitForMSec(int msec);
     void panalOnOff(bool IO);
 
-    void read(QModbusDataUnit::RegisterType type, quint16 adress, int size, int respondFlag);
+    void read(QModbusDataUnit::RegisterType type, quint16 adress, int size);
     void readReady();
     void write(int address, int value);
     void request(QModbusPdu::FunctionCode code, QByteArray cmd); // no PDU reply
 
     void askTemperature(int waitTime = 500);
     void askSetPoint(int waitTime = 500);
-    void askRunStop(int waitTime = 500);
-    void askAT(int waitTime = 500);
+    void askMV(int waitTime = 500);
+    void askMVupper();
+    void askMVlower();
+    void getSetting();
+
     void setAT(int atFlag);
 
-    void on_pushButton_AskTemp_clicked();
+    void on_pushButton_AskStatus_clicked();
     void on_lineEdit_Cmd_returnPressed();
     void on_pushButton_SetSV_clicked();
     void on_pushButton_Control_clicked();
@@ -55,6 +58,10 @@ private slots:
 
     void on_pushButton_OpenFile_clicked();
     void on_pushButton_Connect_clicked();
+
+    void on_doubleSpinBox_MVlower_valueChanged(double arg1);
+
+    void on_doubleSpinBox_MVupper_valueChanged(double arg1);
 
 private:
     Ui::MainWindow *ui;
@@ -69,15 +76,19 @@ private:
     int msgCount;
     int respondType;
 
-    double temperature, SV;
+    double temperature, SV, MV;
+    double MVupper, MVlower;
     double tempDecimal;
 
     bool tempControlOnOff;
     bool tempRecordOnOff;
     bool modbusReady;
     bool atComboxEnable;
+    bool spinBoxEnable;
 
-    QVector<QCPGraphData> timeData;
+    QVector<QCPGraphData> pvData;
+    QVector<QCPGraphData> svData;
+    QVector<QCPGraphData> mvData;
     double mean;
 
 };

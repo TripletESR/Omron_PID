@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>700</width>
-    <height>606</height>
+    <height>681</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -38,7 +38,7 @@
        <item row="0" column="2">
         <widget class="QPushButton" name="pushButton_AskTemp">
          <property name="text">
-          <string>Ask Temp</string>
+          <string>Ask Status</string>
          </property>
         </widget>
        </item>
@@ -88,7 +88,7 @@
           <set>Qt::AlignCenter</set>
          </property>
          <property name="minimum">
-          <number>1</number>
+          <number>3</number>
          </property>
          <property name="maximum">
           <number>500</number>
@@ -226,6 +226,23 @@
          </property>
         </widget>
        </item>
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="lineEdit_CurrentMV">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_10">
+         <property name="text">
+          <string>Current MV :</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
@@ -263,29 +280,22 @@
          </property>
         </widget>
        </item>
-       <item row="7" column="0" colspan="2">
-        <widget class="QCheckBox" name="checkBox_EnableSend">
-         <property name="text">
-          <string>Send When Entered</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="2">
-        <widget class="QPushButton" name="pushButton_ReadRH">
-         <property name="text">
-          <string>Read From Holding Register</string>
-         </property>
-        </widget>
-       </item>
        <item row="3" column="0">
         <widget class="QCheckBox" name="checkBox_RunSop">
          <property name="text">
           <string>Run/Stop</string>
          </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item row="6" column="0" colspan="3">
-        <widget class="QLineEdit" name="lineEdit_Cmd"/>
+        <widget class="QLineEdit" name="lineEdit_Cmd">
+         <property name="text">
+          <string>&lt;PDU&gt; or &lt;0xYYYY&gt;</string>
+         </property>
+        </widget>
        </item>
        <item row="5" column="0" colspan="3">
         <widget class="QComboBox" name="comboBox_Func"/>
@@ -319,6 +329,47 @@
        </item>
        <item row="8" column="0" colspan="3">
         <widget class="QComboBox" name="comboBox_MemAddress"/>
+       </item>
+       <item row="4" column="2">
+        <widget class="QDoubleSpinBox" name="doubleSpinBox_MVupper">
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+         <property name="maximum">
+          <double>100.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QDoubleSpinBox" name="doubleSpinBox_MVlower">
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QCheckBox" name="checkBox_EnableSend">
+         <property name="text">
+          <string>Send When Entered</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1" colspan="2">
+        <widget class="QPushButton" name="pushButton_ReadRH">
+         <property name="text">
+          <string>Read From Holding Register</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_9">
+         <property name="text">
+          <string>MV Limit [%]:</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
