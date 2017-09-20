@@ -65,9 +65,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-
     QCustomPlot * plot;
-
     QModbusRtuSerialMaster * omron;
 
     QString omronPortName;
@@ -90,6 +88,8 @@ private:
     QVector<QCPGraphData> svData;
     QVector<QCPGraphData> mvData;
     double mean;
+
+    //TODO get PID constant
 
 };
 
