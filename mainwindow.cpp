@@ -30,6 +30,7 @@ MainWindow::MainWindow(QWidget *parent) :
     tempRecordOnOff = false;
     modbusReady = true;
     tempDecimal = 0.1; // for 0.1
+    mean = 0;
 
     //Check Temp Directory, is not exist, create
     QDir myDir;
@@ -222,7 +223,7 @@ void MainWindow::panalOnOff(bool IO)
     ui->spinBox_DeviceAddress->setEnabled(IO);
     ui->doubleSpinBox_TempTorr->setEnabled(IO);
     ui->doubleSpinBox_TempStepSize->setEnabled(IO);
-    ui->pushButton_OpenFile->setEnabled(IO);
+    //ui->pushButton_OpenFile->setEnabled(IO);
 }
 
 void MainWindow::on_pushButton_AskTemp_clicked()
@@ -461,6 +462,7 @@ void MainWindow::on_pushButton_Control_clicked()
 {
     tempControlOnOff = !tempControlOnOff;
     panalOnOff(!tempControlOnOff);
+    ui->pushButton_OpenFile->setEnabled(!tempControlOnOff);
     ui->pushButton_RecordTemp->setEnabled(!tempControlOnOff);
 
     if(tempControlOnOff) {
@@ -507,6 +509,8 @@ void MainWindow::on_pushButton_Control_clicked()
         stream << lineout;
 
         timeData.clear();
+        mean = 0;
+        int numData = 0;
         while(tempControlOnOff){
             //Set SV
             double sp = sv;
@@ -536,6 +540,9 @@ void MainWindow::on_pushButton_Control_clicked()
                 QCPGraphData plotdata;
                 plotdata.key = date.toTime_t();
                 plotdata.value = temperature;
+                numData += 1;
+                mean = (mean * (numData-1) + temperature)/numData;
+                LogMsg("########### mean temp. = " + QString::number(mean) + " C.");
 
                 lineout.sprintf("%14s,\t%12.0f,\t%10f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
                 stream << lineout;
@@ -586,6 +593,9 @@ void MainWindow::on_pushButton_Control_clicked()
             QCPGraphData plotdata;
             plotdata.key = date.toTime_t();
             plotdata.value = temperature;
+            numData += 1;
+            mean = (mean * (numData-1) + temperature)/numData;
+            LogMsg("########### mean temp. = " + QString::number(mean) + " C.");
 
             lineout.sprintf("%14s\t%12.0f\t%10.1f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
             stream << lineout;
@@ -641,8 +651,8 @@ void MainWindow::on_checkBox_RunSop_clicked()
 void MainWindow::on_pushButton_RecordTemp_clicked()
 {
     tempRecordOnOff = !tempRecordOnOff;
-    //ui->spinBox_TempRecordTime->setEnabled(!tempRecordOnOff);
     ui->pushButton_Control->setEnabled(!tempRecordOnOff);
+    ui->pushButton_OpenFile->setEnabled(!tempRecordOnOff);
     panalOnOff(!tempRecordOnOff);
 
     if(tempRecordOnOff){
@@ -675,7 +685,8 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         stream << lineout;
 
         timeData.clear();
-
+        mean = 0;
+        int numData = 0;
         //only measure temperature
         while(tempRecordOnOff){
             qDebug()  << "Recording Temp. = " << tempControlOnOff;
@@ -686,6 +697,9 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             plotdata.key = date.toTime_t();
             plotdata.value = temperature;
             //plotdata.value = qrand();
+            numData += 1;
+            mean = (mean * (numData-1) + temperature)/numData;
+            LogMsg("########### mean temp. = " + QString::number(mean) + " C.");
 
             lineout.sprintf("%14s,\t%12.0f,\t%10.1f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
             stream << lineout;
@@ -744,6 +758,7 @@ void MainWindow::on_pushButton_OpenFile_clicked()
     QString line;
 
     timeData.clear();
+    mean = 0 ;
     while(stream.readLineInto(&line)){
         if( line.left(3) == "###") continue;
 
@@ -754,9 +769,12 @@ void MainWindow::on_pushButton_OpenFile_clicked()
         QCPGraphData plotdata;
         plotdata.key = time.toInt();
         plotdata.value = data.toDouble();
+        mean += data.toDouble();
 
         timeData.push_back(plotdata);
     }
+
+    mean = mean / timeData.size();
 
     infile.close();
 
@@ -772,6 +790,8 @@ void MainWindow::on_pushButton_OpenFile_clicked()
     plot->yAxis->setRangeUpper(ymax);
 
     plot->replot();
+
+    LogMsg("########### mean temp. = " + QString::number(mean) + " C.");
 
 }
 

@@ -78,6 +78,7 @@ private:
     bool atComboxEnable;
 
     QVector<QCPGraphData> timeData;
+    double mean;
 
 };
 
