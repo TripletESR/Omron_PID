@@ -15,9 +15,9 @@ enum E5CC_Address{
     PV = 0x0000,
     PV2= 0x0404,
     setPoint = 0x0106,
-    alarmType = 0x0108,
-    alarmUpperLimit = 0x010A,
-    alarmLowerLimit = 0x010C,
+    alarm1Type = 0x0108,
+    alarm1UpperLimit = 0x010A,
+    alarm1LowerLimit = 0x010C,
 };
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -86,6 +86,43 @@ MainWindow::MainWindow(QWidget *parent) :
     panalOnOff(false);
     ui->pushButton_Control->setEnabled(false);
     ui->pushButton_RecordTemp->setEnabled(false);
+
+    //============= some useful addresses
+    ui->comboBox_MemAddress->addItem("0x0000 PV (opt)"                     , 0x0000);
+    ui->comboBox_MemAddress->addItem("0x0106 SP (opt)"                     , 0x0106);
+    ui->comboBox_MemAddress->addItem("0x0108 Alarm 1 type (opt)"           , 0x0108);
+    ui->comboBox_MemAddress->addItem("0x010A Alarm 1 UL (opt)"             , 0x010A);
+    ui->comboBox_MemAddress->addItem("0x010C Alarm 1 LL (opt)"             , 0x010C);
+    ui->comboBox_MemAddress->addItem("0x010E Alarm 2 type (opt)"           , 0x010E);
+    ui->comboBox_MemAddress->addItem("0x0110 Alarm 2 UL (opt)"             , 0x0110);
+    ui->comboBox_MemAddress->addItem("0x0112 Alarm 2 LL (opt)"             , 0x0112);
+    ui->comboBox_MemAddress->addItem("0x0608 heater current 1 (opt)"       , 0x0608);
+    ui->comboBox_MemAddress->addItem("0x060A MV heating (opt)"             , 0x060A);
+    ui->comboBox_MemAddress->addItem("0x060C MV cooling (opt)"             , 0x060C);
+    ui->comboBox_MemAddress->addItem("0x0702 Prop. band (opt)"             , 0x0702);
+    ui->comboBox_MemAddress->addItem("0x0704 Inte. time (opt)"             , 0x0704);
+    ui->comboBox_MemAddress->addItem("0x0706 deri. time (opt)"             , 0x0706);
+
+    ui->comboBox_MemAddress->addItem("0x0710 Ctrl. period heating (ini)"  , 0x0710);
+    ui->comboBox_MemAddress->addItem("0x0712 Ctrl. period cooling (int)"  , 0x0712);
+    ui->comboBox_MemAddress->addItem("0x0D06 Ctrl. output 1 current (int)", 0x0D06);
+    ui->comboBox_MemAddress->addItem("0x0D08 Ctrl. output 2 current (int)", 0x0D08);
+    ui->comboBox_MemAddress->addItem("0x0D1E SP upper limit (int)"         , 0x0D1E);
+    ui->comboBox_MemAddress->addItem("0x0D20 SP lower limit (int)"         , 0x0D20);
+    ui->comboBox_MemAddress->addItem("0x0D22 Std heating/cooling (int)"    , 0x0D22);
+    ui->comboBox_MemAddress->addItem("0x0D24 Direct/Reverse opt. (int)"    , 0x0D24);
+    ui->comboBox_MemAddress->addItem("0x0D28 PID on/off (int)"             , 0x0D28);
+
+    ui->comboBox_MemAddress->addItem("0x0500 Opt/Adj protect (prot)"       , 0x0500);
+    ui->comboBox_MemAddress->addItem("0x0502 Init/Comm protect (prot)"     , 0x0502);
+    ui->comboBox_MemAddress->addItem("0x0504 Setting Chg. protect (prot)"  , 0x0504);
+    ui->comboBox_MemAddress->addItem("0x0506 PF key protect (prot)"        , 0x0506);
+
+    ui->comboBox_MemAddress->addItem("0x0E0C Ctrl. output 1 Assg. (adv)"   , 0x0E0C);
+    ui->comboBox_MemAddress->addItem("0x0E0E Ctrl. output 2 Assg. (adv)"   , 0x0E0E);
+    ui->comboBox_MemAddress->addItem("0x0E20 Aux. output 1 Assg. (adv)"    , 0x0E20);
+    ui->comboBox_MemAddress->addItem("0x0E22 Aux. output 2 Assg. (adv)"    , 0x0E22);
+    ui->comboBox_MemAddress->addItem("0x0E24 Aux. output 3 Assg. (adv)"    , 0x0E24);
 
 }
 

@@ -5,12 +5,14 @@ echo This is batch script for deploying Omron_PID in winodws
 Set desktop=%USERPROFILE%\Desktop
 echo Desktop PATH: %Desktop%
 echo =====================================================
-pause
+
+set /p version="   version? (5_7_0)"
+set /p qt_bin=" Qt bin? (5.7)"
 
 Set name=Omron_PID.exe
-Set origin=%desktop%\build-Omron_PID-Desktop_Qt_5_7_0_MinGW_32bit-Release\release
+Set origin=%desktop%\build-Omron_PID-Desktop_Qt_%version%_MinGW_32bit-Release\release
 Set destination=%desktop%\Omron_PID_release\
-Set compiler=C:\Qt\5.7\mingw53_32\bin\
+Set compiler=C:\Qt\%qt_bin%\mingw53_32\bin\
 
 rem -----------------------------------------
 echo =====================================================

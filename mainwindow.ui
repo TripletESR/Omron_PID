@@ -247,23 +247,6 @@
        <string>E5CC control</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_2" columnstretch="1,1,1">
-       <item row="7" column="2">
-        <widget class="QPushButton" name="pushButton_ReadRH">
-         <property name="text">
-          <string>Read From Holding Register</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QCheckBox" name="checkBox_RunSop">
-         <property name="text">
-          <string>Run/Stop</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0" colspan="3">
-        <widget class="QComboBox" name="comboBox_Func"/>
-       </item>
        <item row="1" column="2">
         <widget class="QSpinBox" name="spinBox_DeviceAddress">
          <property name="alignment">
@@ -280,9 +263,6 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="0" colspan="3">
-        <widget class="QLineEdit" name="lineEdit_Cmd"/>
-       </item>
        <item row="7" column="0" colspan="2">
         <widget class="QCheckBox" name="checkBox_EnableSend">
          <property name="text">
@@ -290,15 +270,25 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QLabel" name="label_5">
+       <item row="7" column="2">
+        <widget class="QPushButton" name="pushButton_ReadRH">
          <property name="text">
-          <string>Address :</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          <string>Read From Holding Register</string>
          </property>
         </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QCheckBox" name="checkBox_RunSop">
+         <property name="text">
+          <string>Run/Stop</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0" colspan="3">
+        <widget class="QLineEdit" name="lineEdit_Cmd"/>
+       </item>
+       <item row="5" column="0" colspan="3">
+        <widget class="QComboBox" name="comboBox_Func"/>
        </item>
        <item row="3" column="1" colspan="2">
         <widget class="QComboBox" name="comboBox_AT">
@@ -314,8 +304,21 @@
          </property>
         </widget>
        </item>
+       <item row="1" column="1">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Address :</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="1" colspan="2">
         <widget class="QComboBox" name="comboBox_SeriesNumber"/>
+       </item>
+       <item row="8" column="0" colspan="3">
+        <widget class="QComboBox" name="comboBox_MemAddress"/>
        </item>
       </layout>
      </widget>
