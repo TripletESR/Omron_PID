@@ -95,51 +95,51 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->pushButton_RecordTemp->setEnabled(false);
 
     //============= some useful addresses
-    ui->comboBox_MemAddress->addItem("0x0000 PV (opt)"                     , 0x0000);
-    ui->comboBox_MemAddress->addItem("0x0008 MV heating (opt)"             , 0x0008);
-    ui->comboBox_MemAddress->addItem("0x000A MV cooling (opt)"             , 0x000A);
-    ui->comboBox_MemAddress->addItem("0x0106 SP (opt)"                     , 0x0106);
-    ui->comboBox_MemAddress->addItem("0x0108 Alarm 1 type (opt)"           , 0x0108);
-    ui->comboBox_MemAddress->addItem("0x010A Alarm 1 UL (opt)"             , 0x010A);
-    ui->comboBox_MemAddress->addItem("0x010C Alarm 1 LL (opt)"             , 0x010C);
-    ui->comboBox_MemAddress->addItem("0x010E Alarm 2 type (opt)"           , 0x010E);
-    ui->comboBox_MemAddress->addItem("0x0110 Alarm 2 UL (opt)"             , 0x0110);
-    ui->comboBox_MemAddress->addItem("0x0112 Alarm 2 LL (opt)"             , 0x0112);
-    ui->comboBox_MemAddress->addItem("0x0608 heater current 1 (opt)"       , 0x0608);
-    ui->comboBox_MemAddress->addItem("0x060A MV heating (opt)"             , 0x060A);
-    ui->comboBox_MemAddress->addItem("0x060C MV cooling (opt)"             , 0x060C);
-    ui->comboBox_MemAddress->addItem("0x0702 Prop. band (opt)"             , 0x0702);
-    ui->comboBox_MemAddress->addItem("0x0704 Inte. time (opt)"             , 0x0704);
-    ui->comboBox_MemAddress->addItem("0x0706 deri. time (opt)"             , 0x0706);
+    ui->comboBox_MemAddress->addItem("0x0000 (opt) PV "                     , 0x0000);
+    ui->comboBox_MemAddress->addItem("0x0008 (opt) MV heating "             , 0x0008);
+    ui->comboBox_MemAddress->addItem("0x000A (opt) MV cooling "            , 0x000A);
+    ui->comboBox_MemAddress->addItem("0x0106 (opt) SP "                     , 0x0106);
+    ui->comboBox_MemAddress->addItem("0x0108 (opt) Alarm 1 type "           , 0x0108);
+    ui->comboBox_MemAddress->addItem("0x010A (opt) Alarm 1 UL "             , 0x010A);
+    ui->comboBox_MemAddress->addItem("0x010C (opt) Alarm 1 LL "             , 0x010C);
+    ui->comboBox_MemAddress->addItem("0x010E (opt) Alarm 2 type "           , 0x010E);
+    ui->comboBox_MemAddress->addItem("0x0110 (opt) Alarm 2 UL "             , 0x0110);
+    ui->comboBox_MemAddress->addItem("0x0112 (opt) Alarm 2 LL "             , 0x0112);
+    ui->comboBox_MemAddress->addItem("0x0608 (opt) heater current 1 "       , 0x0608);
+    ui->comboBox_MemAddress->addItem("0x060A (opt) MV heating "             , 0x060A);
+    ui->comboBox_MemAddress->addItem("0x060C (opt) MV cooling "             , 0x060C);
+    ui->comboBox_MemAddress->addItem("0x0702 (opt) Prop. band "             , 0x0702);
+    ui->comboBox_MemAddress->addItem("0x0704 (opt) Inte. time "             , 0x0704);
+    ui->comboBox_MemAddress->addItem("0x0706 (opt) deri. time "             , 0x0706);
 
-    ui->comboBox_MemAddress->addItem("0x071E MV at stop (adj)"             , 0x071E);
-    ui->comboBox_MemAddress->addItem("0x0722 MV at PV Error (adj)"         , 0x0722);
-    ui->comboBox_MemAddress->addItem("0x0A0A Prop. band (adj)"             , 0x0A00);
-    ui->comboBox_MemAddress->addItem("0x0A02 Inte. time (adj)"             , 0x0A02);
-    ui->comboBox_MemAddress->addItem("0x0A04 deri. time (adj)"             , 0x0A04);
-    ui->comboBox_MemAddress->addItem("0x0A0A MV upper limit (adj)"         , 0x0A0A);
-    ui->comboBox_MemAddress->addItem("0x0A0C MV lower limit (adj)"         , 0x0A0C);
+    ui->comboBox_MemAddress->addItem("0x071E (adj) MV at stop "             , 0x071E);
+    ui->comboBox_MemAddress->addItem("0x0722 (adj) MV at PV Error "         , 0x0722);
+    ui->comboBox_MemAddress->addItem("0x0A0A (adj) Prop. band "             , 0x0A00);
+    ui->comboBox_MemAddress->addItem("0x0A02 (adj) Inte. time "             , 0x0A02);
+    ui->comboBox_MemAddress->addItem("0x0A04 (adj) deri. time "             , 0x0A04);
+    ui->comboBox_MemAddress->addItem("0x0A0A (adj) MV upper limit "         , 0x0A0A);
+    ui->comboBox_MemAddress->addItem("0x0A0C (adj) MV lower limit "         , 0x0A0C);
 
-    ui->comboBox_MemAddress->addItem("0x0710 Ctrl. period heating (ini)"   , 0x0710);
-    ui->comboBox_MemAddress->addItem("0x0712 Ctrl. period cooling (ini)"   , 0x0712);
-    ui->comboBox_MemAddress->addItem("0x0D06 Ctrl. output 1 current (ini)" , 0x0D06);
-    ui->comboBox_MemAddress->addItem("0x0D08 Ctrl. output 2 current (ini)" , 0x0D08);
-    ui->comboBox_MemAddress->addItem("0x0D1E SP upper limit (ini)"         , 0x0D1E);
-    ui->comboBox_MemAddress->addItem("0x0D20 SP lower limit (ini)"         , 0x0D20);
-    ui->comboBox_MemAddress->addItem("0x0D22 Std heating/cooling (ini)"    , 0x0D22);
-    ui->comboBox_MemAddress->addItem("0x0D24 Direct/Reverse opt. (ini)"    , 0x0D24);
-    ui->comboBox_MemAddress->addItem("0x0D28 PID on/off (ini)"             , 0x0D28);
+    ui->comboBox_MemAddress->addItem("0x0710 (ini) Ctrl. period heating "   , 0x0710);
+    ui->comboBox_MemAddress->addItem("0x0712 (ini) Ctrl. period cooling "   , 0x0712);
+    ui->comboBox_MemAddress->addItem("0x0D06 (ini) Ctrl. output 1 current " , 0x0D06);
+    ui->comboBox_MemAddress->addItem("0x0D08 (ini) Ctrl. output 2 current " , 0x0D08);
+    ui->comboBox_MemAddress->addItem("0x0D1E (ini) SP upper limit "         , 0x0D1E);
+    ui->comboBox_MemAddress->addItem("0x0D20 (ini) SP lower limit "         , 0x0D20);
+    ui->comboBox_MemAddress->addItem("0x0D22 (ini) Std heating/cooling "    , 0x0D22);
+    ui->comboBox_MemAddress->addItem("0x0D24 (ini) Direct/Reverse opt. "    , 0x0D24);
+    ui->comboBox_MemAddress->addItem("0x0D28 (ini) PID on/off "             , 0x0D28);
 
-    ui->comboBox_MemAddress->addItem("0x0500 Opt/Adj protect (prot)"       , 0x0500);
-    ui->comboBox_MemAddress->addItem("0x0502 Init/Comm protect (prot)"     , 0x0502);
-    ui->comboBox_MemAddress->addItem("0x0504 Setting Chg. protect (prot)"  , 0x0504);
-    ui->comboBox_MemAddress->addItem("0x0506 PF key protect (prot)"        , 0x0506);
+    ui->comboBox_MemAddress->addItem("0x0500 (protect) Opt/Adj protect "       , 0x0500);
+    ui->comboBox_MemAddress->addItem("0x0502 (protect) Init/Comm protect "     , 0x0502);
+    ui->comboBox_MemAddress->addItem("0x0504 (protect) Setting Chg. protect "  , 0x0504);
+    ui->comboBox_MemAddress->addItem("0x0506 (protect) PF key protect "        , 0x0506);
 
-    ui->comboBox_MemAddress->addItem("0x0E0C Ctrl. output 1 Assg. (adv)"   , 0x0E0C);
-    ui->comboBox_MemAddress->addItem("0x0E0E Ctrl. output 2 Assg. (adv)"   , 0x0E0E);
-    ui->comboBox_MemAddress->addItem("0x0E20 Aux. output 1 Assg. (adv)"    , 0x0E20);
-    ui->comboBox_MemAddress->addItem("0x0E22 Aux. output 2 Assg. (adv)"    , 0x0E22);
-    ui->comboBox_MemAddress->addItem("0x0E24 Aux. output 3 Assg. (adv)"    , 0x0E24);
+    ui->comboBox_MemAddress->addItem("0x0E0C (adv) Ctrl. output 1 Assignment "   , 0x0E0C);
+    ui->comboBox_MemAddress->addItem("0x0E0E (adv) Ctrl. output 2 Assignment "   , 0x0E0E);
+    ui->comboBox_MemAddress->addItem("0x0E20 (adv) Aux. output 1 Assignment "    , 0x0E20);
+    ui->comboBox_MemAddress->addItem("0x0E22 (adv) Aux. output 2 Assignment "    , 0x0E22);
+    ui->comboBox_MemAddress->addItem("0x0E24 (adv) Aux. output 3 Assignment "    , 0x0E24);
 
 }
 
@@ -640,9 +640,9 @@ void MainWindow::on_pushButton_Control_clicked()
         mvData.clear();
         mean = 0;
         int numData = 0;
+        double smallShift = targetValue;
         while(tempControlOnOff){
             //Set SV
-        double smallShift = targetValue;
             if(qAbs(temperature-targetValue) >= tempStepSize){
                 smallShift = temperature + direction * tempStepSize  ;
             }

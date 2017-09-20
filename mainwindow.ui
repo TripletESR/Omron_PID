@@ -295,6 +295,11 @@
        </item>
        <item row="6" column="0" colspan="3">
         <widget class="QLineEdit" name="lineEdit_Cmd">
+         <property name="font">
+          <font>
+           <family>Courier New</family>
+          </font>
+         </property>
          <property name="text">
           <string>&lt;PDU&gt; or &lt;0xYYYY&gt;</string>
          </property>
@@ -331,7 +336,16 @@
         <widget class="QComboBox" name="comboBox_SeriesNumber"/>
        </item>
        <item row="8" column="0" colspan="3">
-        <widget class="QComboBox" name="comboBox_MemAddress"/>
+        <widget class="QComboBox" name="comboBox_MemAddress">
+         <property name="font">
+          <font>
+           <family>Courier New</family>
+          </font>
+         </property>
+         <property name="maxVisibleItems">
+          <number>20</number>
+         </property>
+        </widget>
        </item>
        <item row="4" column="2">
         <widget class="QDoubleSpinBox" name="doubleSpinBox_MVupper">
