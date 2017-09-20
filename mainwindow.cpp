@@ -48,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent) :
     plot->xAxis2->setVisible(true);
     plot->yAxis2->setVisible(true);
     plot->yAxis2->setLabel(" MV [%]");
+    plot->yAxis2->setRangeLower(0.0);
     plot->xAxis2->setTicks(false);
     plot->yAxis2->setTicks(true);
     plot->xAxis2->setTickLabels(false);
@@ -231,7 +232,7 @@ void MainWindow::panalOnOff(bool IO)
     ui->comboBox_Func->setEnabled(IO);
     ui->comboBox_AT->setEnabled(IO);
     ui->pushButton_ReadRH->setEnabled(IO);
-    ui->pushButton_AskTemp->setEnabled(IO);
+    ui->pushButton_AskStatus->setEnabled(IO);
     ui->pushButton_SetSV->setEnabled(IO);
     ui->spinBox_TempRecordTime->setEnabled(IO);
     ui->spinBox_TempStableTime->setEnabled(IO);
@@ -325,6 +326,8 @@ void MainWindow::readReady()
             QString str = tr("MV upper limit : %1 \%").arg(QString::number(MVupper));
             ui->doubleSpinBox_MVupper->setValue(MVupper);
             LogMsg(str);
+            plot->yAxis2->setRangeUpper(MVupper*1.2);
+            plot->replot();
         }else if(respondType == E5CC_Address::MVlower){
             MVlower = QString::number(unit.value(1), 10).toDouble() * tempDecimal;
             QString str = tr("MV lower limit : %1 \%").arg(QString::number(MVlower));
@@ -706,7 +709,6 @@ void MainWindow::on_pushButton_Control_clicked()
                 plot->graph(2)->data()->add(mvData);
                 plot->yAxis->rescale();
                 plot->xAxis->rescale();
-                plot->yAxis2->rescale();
 
                 double ymin = plot->yAxis->range().lower - 2;
                 double ymax = plot->yAxis->range().upper + 2;
@@ -892,7 +894,6 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             plot->graph(2)->data()->add(mvData);
             plot->yAxis->rescale();
             plot->xAxis->rescale();
-            plot->yAxis2->rescale();
 
             double ymin = plot->yAxis->range().lower - 2;
             double ymax = plot->yAxis->range().upper + 2;
@@ -1021,6 +1022,8 @@ void MainWindow::on_doubleSpinBox_MVlower_valueChanged(double arg1)
     if(!spinBoxEnable) return;
     if(!modbusReady) return;
 
+    MVlower = arg1;
+
     int sv_2 = (qint16) (arg1 / tempDecimal + 0.5);
     qDebug() << sv_2;
     QString valueStr = formatHex(sv_2, 8);
@@ -1037,12 +1040,17 @@ void MainWindow::on_doubleSpinBox_MVupper_valueChanged(double arg1)
     if(!spinBoxEnable) return;
     if(!modbusReady) return;
 
+    MVupper = arg1;
+
     int sv_2 = (qint16) (arg1 / tempDecimal + 0.5);
     qDebug() << sv_2;
     QString valueStr = formatHex(sv_2, 8);
-    QString addressStr = formatHex(E5CC_Address::SV, 4);
+    QString addressStr = formatHex(E5CC_Address::MVupper, 4);
 
     QString cmd = addressStr + " 00 02 04" + valueStr;
     QByteArray value = QByteArray::fromHex(cmd.toStdString().c_str());
     request(QModbusPdu::WriteMultipleRegisters, value);
+
+    plot->yAxis2->setRangeLower(MVupper*1.2);
+    plot->replot();
 }

@@ -36,7 +36,7 @@
         </widget>
        </item>
        <item row="0" column="2">
-        <widget class="QPushButton" name="pushButton_AskTemp">
+        <widget class="QPushButton" name="pushButton_AskStatus">
          <property name="text">
           <string>Ask Status</string>
          </property>
@@ -416,7 +416,7 @@
   <tabstop>lineEdit_Cmd</tabstop>
   <tabstop>lineEdit_SV</tabstop>
   <tabstop>textEdit_Log</tabstop>
-  <tabstop>pushButton_AskTemp</tabstop>
+  <tabstop>pushButton_AskStatus</tabstop>
   <tabstop>pushButton_SetSV</tabstop>
   <tabstop>lineEdit_Temp</tabstop>
  </tabstops>
