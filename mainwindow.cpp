@@ -689,10 +689,8 @@ void MainWindow::on_pushButton_Control_clicked()
                 pvData.push_back(plotdata);
 
                 lineout.sprintf("%14s,\t%12.0f,\t%10f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
-                stream << lineout;
-
-                plotdata.value = smallShift;
-                svData.push_back(plotdata);
+                stream << lineout;               
+                outfile.flush(); // write to file immedinately, but seem not working...
 
                 plotdata.value = smallShift;
                 svData.push_back(plotdata);
@@ -708,6 +706,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 plot->graph(2)->data()->add(mvData);
                 plot->yAxis->rescale();
                 plot->xAxis->rescale();
+                plot->yAxis2->rescale();
 
                 double ymin = plot->yAxis->range().lower - 2;
                 double ymax = plot->yAxis->range().upper + 2;
@@ -821,7 +820,6 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
     }
 
     plot->graph(1)->data()->clear();
-    plot->graph(2)->data()->clear();
 
     if( tempRecordOnOff){
         const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000;
@@ -849,26 +847,52 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         //only measure temperature
         while(tempRecordOnOff){
             qDebug()  << "Recording Temp. = " << tempControlOnOff;
-            askTemperature(500);
+
+            askTemperature();
+            int i = 0;
+            while(!modbusReady) {
+                i++;
+                waitForMSec(300);
+                if( i > 10 ){
+                    modbusReady = true;
+                }
+            }
+            askMV();
+            i = 0;
+            while(!modbusReady) {
+                i++;
+                waitForMSec(300);
+                if( i > 10 ){
+                    modbusReady = true;
+                }
+            }
+
+            numData += 1;
+            mean = (mean * (numData-1) + temperature)/numData;
+            //LogMsg("########### mean temp. = " + QString::number(mean) + " C.");
 
             QDateTime date = QDateTime::currentDateTime();
             QCPGraphData plotdata;
             plotdata.key = date.toTime_t();
+
             plotdata.value = temperature;
+            pvData.push_back(plotdata);
             //plotdata.value = qrand();
-            numData += 1;
-            mean = (mean * (numData-1) + temperature)/numData;
-            //LogMsg("########### mean temp. = " + QString::number(mean) + " C.");
 
             lineout.sprintf("%14s,\t%12.0f,\t%10.1f\n", date.toString("MM-dd HH:mm:ss").toStdString().c_str(), plotdata.key, plotdata.value);
             stream << lineout;
             outfile.flush(); // write to file immedinately, but seem not working...
 
-            pvData.push_back(plotdata);
+            plotdata.value = MV;
+            mvData.push_back(plotdata);
+
             plot->graph(0)->data()->clear();
             plot->graph(0)->data()->add(pvData);
+            plot->graph(2)->data()->clear();
+            plot->graph(2)->data()->add(mvData);
             plot->yAxis->rescale();
             plot->xAxis->rescale();
+            plot->yAxis2->rescale();
 
             double ymin = plot->yAxis->range().lower - 2;
             double ymax = plot->yAxis->range().upper + 2;
@@ -878,7 +902,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
 
             plot->replot();
 
-            waitForMSec(tempGetTime-500);
+            waitForMSec(tempGetTime);
 
         };
 

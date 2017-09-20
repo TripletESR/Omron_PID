@@ -162,7 +162,7 @@
           <double>0.100000000000000</double>
          </property>
          <property name="value">
-          <double>0.200000000000000</double>
+          <double>0.500000000000000</double>
          </property>
         </widget>
        </item>
@@ -201,7 +201,7 @@
           <double>0.100000000000000</double>
          </property>
          <property name="value">
-          <double>0.300000000000000</double>
+          <double>0.800000000000000</double>
          </property>
         </widget>
        </item>
@@ -230,6 +230,9 @@
         <widget class="QLineEdit" name="lineEdit_CurrentMV">
          <property name="enabled">
           <bool>false</bool>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
