@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Omron Temp. Control</string>
+   <string>Omron E5CC Temp. Control</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout_4" rowstretch="2,2,1" columnstretch="1,1">

@@ -24,8 +24,6 @@ public:
     void LogMsg(QString str);
     void findSeriesPortDevices();
 
-    void showDataUnit(QModbusDataUnit unit);
-
 private slots:
     QString formatHex(int value, int digit);
     void waitForMSec(int msec);
@@ -61,8 +59,6 @@ private slots:
     void on_checkBox_RunSop_clicked();
     void on_checkBox_MuteLogMsg_clicked(bool checked);
 
-    void on_spinBox_DeviceAddress_valueChanged(int arg1);
-
     void on_doubleSpinBox_MVlower_valueChanged(double arg1);
     void on_doubleSpinBox_MVupper_valueChanged(double arg1);
 
@@ -93,7 +89,6 @@ private:
     QVector<QCPGraphData> pvData;
     QVector<QCPGraphData> svData;
     QVector<QCPGraphData> mvData;
-    double mean;
 
     double pid_P, pid_I, pid_D;
 

@@ -30,7 +30,6 @@ MainWindow::MainWindow(QWidget *parent) :
     spinBoxEnable = false;
     muteLog = false;
     tempDecimal = 0.1; // for 0.1
-    mean = 0;
 
     //Check Temp Directory, is not exist, create
     QDir myDir;
@@ -184,9 +183,7 @@ void MainWindow::LogMsg(QString str)
 
 void MainWindow::findSeriesPortDevices()
 {
-    //static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
-    LogMsg("--------------");
-    LogMsg("found COM Ports:");
+    LogMsg("-------------- COM Ports found :");
     const auto infos = QSerialPortInfo::availablePorts();
     for (const QSerialPortInfo &info : infos) {
         //LogMsg("PortName     ="+info.portName() );
@@ -197,28 +194,10 @@ void MainWindow::findSeriesPortDevices()
         //LogMsg("Vendor       ="+(info.vendorIdentifier() ? QString::number(info.vendorIdentifier(), 16) : "")  );
         //LogMsg("Identifier   ="+(info.productIdentifier() ? QString::number(info.productIdentifier(), 16) : ""));
         //LogMsg("=======================");
-
         LogMsg(info.portName() + ", " + info.serialNumber() + ", " + info.manufacturer());
-
         ui->comboBox_SeriesNumber->addItem( info.serialNumber(), (QString) info.portName());
-
-        //if(info.serialNumber() == "FT0875RPA" && info.manufacturer() == "FTDI" ){
-        //    omronPortName = info.portName();
-        //    qDebug() << omronPortName;
-        //}
     }
     LogMsg ("--------------");
-}
-
-void MainWindow::showDataUnit(QModbusDataUnit unit)
-{
-    qDebug() << "Type :" << unit.registerType();
-    qDebug() << "Start Address" << unit.startAddress();
-    qDebug() << "number of values" << unit.valueCount();
-    qDebug() << unit.values();
-    //for( int i = 0; i < unit.valueCount(); i++ ){
-    //    qDebug() << i << " = " << unit.value(i);
-    //}
 }
 
 QString MainWindow::formatHex(int value, int digit)
@@ -240,8 +219,6 @@ void MainWindow::waitForMSec(int msec)
 
 void MainWindow::panalOnOff(bool IO)
 {
-    //ui->checkBox_EnableSend->setChecked(!IO);
-
     ui->lineEdit_Cmd->setEnabled(IO);
     ui->lineEdit_SV->setEnabled(IO);
     ui->checkBox_EnableSend->setEnabled(IO);
@@ -262,7 +239,6 @@ void MainWindow::panalOnOff(bool IO)
     ui->comboBox_Mode->setEnabled(IO);
     ui->checkBox_MuteLogMsg->setEnabled(IO);
     ui->comboBox_MemAddress->setEnabled(IO);
-    //ui->pushButton_OpenFile->setEnabled(IO);
 }
 
 void MainWindow::on_pushButton_AskStatus_clicked()
@@ -578,10 +554,6 @@ void MainWindow::on_lineEdit_Cmd_returnPressed()
     if( ui->checkBox_EnableSend->isChecked()){
         LogMsg("(Send) PDU = 0x " + formatHex( static_cast<int>(regType), 2) + " "+ input);
         request(regType, value);
-        //while(!modbusReady){
-        //    waitForMSec(100);
-        //    qDebug() << "waiting for request done....";
-        //}
     }else{
         LogMsg("(No Send) PDU = 0x " + formatHex( static_cast<int>(regType), 2) + " "+ input);
     }
@@ -682,7 +654,8 @@ void MainWindow::on_pushButton_Control_clicked()
         }
 
         // set output file =================
-        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") +
+        QDateTime startTime = QDateTime::currentDateTime();
+        QString fileName = startTime.toString("yyyyMMdd_HHmmss") +
                 "_tempControl_" + ui->comboBox_SeriesNumber->currentText() +".dat";
         QString filePath = DATA_PATH + "/" + fileName;
         LogMsg("data save to : " + filePath);
@@ -691,8 +664,6 @@ void MainWindow::on_pushButton_Control_clicked()
         outfile.open(QIODevice::WriteOnly);
         QTextStream stream(&outfile);
         QString lineout;
-
-        QDateTime startTime = QDateTime::currentDateTime();
 
         lineout.sprintf("###%s", startTime.toString("yyyy-MM-dd HH:mm:ss\n").toStdString().c_str());
         stream << lineout;
@@ -719,11 +690,9 @@ void MainWindow::on_pushButton_Control_clicked()
         pvData.clear();
         svData.clear();
         mvData.clear();
-        mean = 0;
-        int numData = 0;
         double smallShift = targetValue;
         while(tempControlOnOff){
-            //Set SV
+            //----------------Set SV
             if(qAbs(temperature-targetValue) >= tempStepSize){
                 smallShift = temperature + direction * tempStepSize  ;
             }
@@ -772,13 +741,9 @@ void MainWindow::on_pushButton_Control_clicked()
                     }
                 }
 
-                numData += 1;
-                mean = (mean * (numData-1) + temperature)/numData;
-                //LogMsg("########### mean temp. = " + QString::number(mean) + " C.");
-
-                QDateTime date = QDateTime::currentDateTime();
+                QDateTime currentTime = QDateTime::currentDateTime();
                 QCPGraphData plotdata;
-                plotdata.key = date.toTime_t();
+                plotdata.key = currentTime.toTime_t();
 
                 plotdata.value = temperature;
                 pvData.push_back(plotdata);
@@ -805,7 +770,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 plot->replot();
 
                 lineout.sprintf("%14s,\t%12.0f,\t%10.1f,\t%10.1f,\t%10.1f\n",
-                                date.toString("MM-dd HH:mm:ss").toStdString().c_str(),
+                                currentTime.toString("MM-dd HH:mm:ss").toStdString().c_str(),
                                 plotdata.key,
                                 temperature,
                                 smallShift,
@@ -827,7 +792,6 @@ void MainWindow::on_pushButton_Control_clicked()
                         count = 0;
                     }
                 }else{
-                    QDateTime currentTime = QDateTime::currentDateTime();
                     int esplase = currentTime.toTime_t() - smallStartTime.toTime_t();
                     if (esplase * 1000. > tempStableTime){
                         count = tempStableTime + 10; // just to make the count > tempStableTime
@@ -889,9 +853,6 @@ void MainWindow::on_pushButton_Control_clicked()
                     modbusReady = true;
                 }
             }
-            numData += 1;
-            mean = (mean * (numData-1) + temperature)/numData;
-            //LogMsg("########### mean temp. = " + QString::number(mean) + " C.");
 
             QDateTime date = QDateTime::currentDateTime();
             QCPGraphData plotdata;
@@ -998,7 +959,8 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         }
 
         // set output file =================
-        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") +
+        QDateTime startTime = QDateTime::currentDateTime();
+        QString fileName = startTime.toString("yyyyMMdd_HHmmss") +
                 "_tempRecord_" + ui->comboBox_SeriesNumber->currentText() +".dat";
         QString filePath = DATA_PATH + "/" + fileName;
         LogMsg("data save to : " + filePath);
@@ -1008,7 +970,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         QTextStream stream(&outfile);
         QString lineout;
 
-        lineout.sprintf("###%s", QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss\n").toStdString().c_str());
+        lineout.sprintf("###%s", startTime.toString("yyyy-MM-dd HH:mm:ss\n").toStdString().c_str());
         stream << lineout;
         lineout = "###Temperature Recording.\n";
         stream << lineout;
@@ -1018,18 +980,16 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         pvData.clear();
         svData.clear();
         mvData.clear();
-        mean = 0;
-        int numData = 0;
         //only measure temperature
         muteLog = true;
         while(tempRecordOnOff){
-            qDebug()  << "Recording Temp. = " << tempControlOnOff;
-
+            int modBusWaitTime = 0;
             askTemperature();
             int i = 0;
             while(!modbusReady) {
                 i++;
                 waitForMSec(300);
+                modBusWaitTime += 300;
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -1039,14 +999,11 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             while(!modbusReady) {
                 i++;
                 waitForMSec(300);
+                modBusWaitTime += 300;
                 if( i > 10 ){
                     modbusReady = true;
                 }
             }
-
-            numData += 1;
-            mean = (mean * (numData-1) + temperature)/numData;
-            //LogMsg("########### mean temp. = " + QString::number(mean) + " C.");
 
             QDateTime date = QDateTime::currentDateTime();
             QCPGraphData plotdata;
@@ -1056,11 +1013,16 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             pvData.push_back(plotdata);
             //plotdata.value = qrand();
 
+            plotdata.value = SV;
+            svData.push_back(plotdata);
+
             plotdata.value = MV;
             mvData.push_back(plotdata);
 
             plot->graph(0)->data()->clear();
             plot->graph(0)->data()->add(pvData);
+            plot->graph(1)->data()->clear();
+            plot->graph(1)->data()->add(svData);
             plot->graph(2)->data()->clear();
             plot->graph(2)->data()->add(mvData);
             plot->yAxis->rescale();
@@ -1083,7 +1045,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             stream << lineout;
             outfile.flush(); // write to file immedinately, but seem not working...
 
-            waitForMSec(tempGetTime);
+            waitForMSec(tempGetTime - modBusWaitTime);
 
         };
         muteLog = false;
@@ -1100,11 +1062,6 @@ void MainWindow::on_pushButton_ReadRH_clicked()
     bool ok = false;
     quint16 address = ui->lineEdit_Cmd->text().toUInt(&ok,16);
     read(QModbusDataUnit::HoldingRegisters, address, 2);
-}
-
-void MainWindow::on_spinBox_DeviceAddress_valueChanged(int arg1)
-{
-    omronID = arg1;
 }
 
 void MainWindow::on_pushButton_OpenFile_clicked()
@@ -1125,7 +1082,6 @@ void MainWindow::on_pushButton_OpenFile_clicked()
     pvData.clear();
     svData.clear();
     mvData.clear();
-    mean = 0 ;
     bool haveSVMVData = false;
     while(stream.readLineInto(&line)){
         if( line.left(3) == "###") continue;
@@ -1137,7 +1093,6 @@ void MainWindow::on_pushButton_OpenFile_clicked()
         QCPGraphData plotdata;
         plotdata.key = time.toInt();
         plotdata.value = pv.toDouble();
-        mean += pv.toDouble();
         pvData.push_back(plotdata);
 
         if( list.size() < 5){
@@ -1151,8 +1106,6 @@ void MainWindow::on_pushButton_OpenFile_clicked()
             svData.push_back(plotdata);
         }
     }
-
-    mean = mean / pvData.size();
 
     infile.close();
 
@@ -1176,8 +1129,6 @@ void MainWindow::on_pushButton_OpenFile_clicked()
     plot->yAxis->setRangeUpper(ymax);
 
     plot->replot();
-
-    LogMsg("########### mean temp. = " + QString::number(mean) + " C.");
 
 }
 
