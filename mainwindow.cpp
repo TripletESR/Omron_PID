@@ -13,7 +13,9 @@ enum E5CC_Address{
     MVupper = 0x0A0A,
     MVlower = 0x0A0C,
 
-    other = 0xFFFF
+    PID_P=0x0A00,
+    PID_I=0x0A02,
+    PID_D=0x0A04
 };
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -26,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
     tempRecordOnOff = false;
     modbusReady = true;
     spinBoxEnable = false;
+    muteLog = false;
     tempDecimal = 0.1; // for 0.1
     mean = 0;
 
@@ -155,6 +158,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::LogMsg(QString str)
 {
+    if( muteLog ) return;
     msgCount ++;
     QString dateStr = QDateTime::currentDateTime().toString("HH:mm:ss ");
     QString countStr;
@@ -333,6 +337,21 @@ void MainWindow::readReady()
             QString str = tr("MV lower limit : %1 \%").arg(QString::number(MVlower));
             ui->doubleSpinBox_MVlower->setValue(MVlower);
             LogMsg(str);
+        }else if(respondType == E5CC_Address::PID_P){
+            pid_P = QString::number(unit.value(1), 10).toDouble() * 0.1;
+            QString str = tr("P       : %1 ").arg(QString::number(pid_P));
+            ui->lineEdit_P->setText(QString::number(pid_P));
+            LogMsg(str);
+        }else if(respondType == E5CC_Address::PID_I){
+            pid_I = QString::number(unit.value(1), 10).toDouble();
+            QString str = tr("I (raw) : %1 sec").arg(QString::number(pid_I));
+            ui->lineEdit_I->setText(QString::number(pid_I));
+            LogMsg(str);
+        }else if(respondType == E5CC_Address::PID_D){
+            pid_D = QString::number(unit.value(1), 10).toDouble();
+            QString str = tr("D (raw) : %1 sec").arg(QString::number(pid_D));
+            ui->lineEdit_D->setText(QString::number(pid_D));
+            LogMsg(str);
         }else{
             LogMsg("respond count: " + QString::number(unit.valueCount()));
             for (uint i = 0; i < unit.valueCount(); i++) {
@@ -442,7 +461,38 @@ void MainWindow::getSetting()
     }
     spinBoxEnable = true;
 
-    //TODO get PID constant
+    //get PID constant
+    LogMsg("------ get Propertion band.");
+    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PID_P, 2);
+    i = 0;
+    while(!modbusReady) {
+        i++;
+        waitForMSec(300);
+        if( i > 10 ){
+            modbusReady = true;
+        }
+    }
+    LogMsg("------ get integration time.");
+    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PID_I, 2);
+    i = 0;
+    while(!modbusReady) {
+        i++;
+        waitForMSec(300);
+        if( i > 10 ){
+            modbusReady = true;
+        }
+    }
+    LogMsg("------ get derivative time.");
+    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PID_D, 2);
+    i = 0;
+    while(!modbusReady) {
+        i++;
+        waitForMSec(300);
+        if( i > 10 ){
+            modbusReady = true;
+        }
+    }
+
 
 }
 
@@ -521,7 +571,7 @@ void MainWindow::request(QModbusPdu::FunctionCode code, QByteArray cmd)
     QModbusPdu pdu;
     pdu.setFunctionCode(code);
     pdu.setData(cmd);
-    qDebug() << pdu; //TODO show in LogMsg
+    qDebug() << pdu;
 
     QModbusRequest ask(pdu);
 
@@ -659,6 +709,7 @@ void MainWindow::on_pushButton_Control_clicked()
             LogMsg("========= try to go to " + QString::number(smallShift) + " C.");
 
             int count = 0;
+            muteLog = true;
             do{
                 qDebug()  << "temp control. do-loop 1 = " << tempControlOnOff;
                 if(!tempControlOnOff) break;
@@ -737,6 +788,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 }
 
             }while( count < tempStableTime  && tempControlOnOff ); // if temperature stable for 10 min
+            muteLog = false;
 
             if( qAbs(temperature - targetValue)< tempTorr) {
                 lineout = "###=========== Target Temperature Reached =============";
@@ -750,6 +802,7 @@ void MainWindow::on_pushButton_Control_clicked()
 
         //=========== now is the E5CC control
         //only measure temperature
+        muteLog = true;
         while(tempControlOnOff){
             qDebug()  << "temp control. do-loop 2 = " << tempControlOnOff;
             askTemperature();
@@ -815,6 +868,7 @@ void MainWindow::on_pushButton_Control_clicked()
             waitForMSec(tempGetTime);
 
         };
+        muteLog = false;
 
         stream << "###============ end of file ==============";
         outfile.close();
@@ -823,6 +877,7 @@ void MainWindow::on_pushButton_Control_clicked()
         ui->pushButton_Control->setStyleSheet("");
         tempControlOnOff = false;
     }
+
 }
 
 void MainWindow::on_comboBox_AT_currentIndexChanged(int index)
@@ -897,6 +952,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         mean = 0;
         int numData = 0;
         //only measure temperature
+        muteLog = true;
         while(tempRecordOnOff){
             qDebug()  << "Recording Temp. = " << tempControlOnOff;
 
@@ -961,6 +1017,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             waitForMSec(tempGetTime);
 
         };
+        muteLog = false;
 
         stream << "###============ end of file ==============";
         outfile.close();
@@ -997,20 +1054,33 @@ void MainWindow::on_pushButton_OpenFile_clicked()
     QString line;
 
     pvData.clear();
+    svData.clear();
+    mvData.clear();
     mean = 0 ;
+    bool haveSVMVData = false;
     while(stream.readLineInto(&line)){
         if( line.left(3) == "###") continue;
 
         QStringList list = line.split(",");
-        if(list.size() != 3) continue;
+        if(list.size() < 3) continue;
         QString time = list[1];
-        QString data = list[2];
+        QString pv = list[2];
         QCPGraphData plotdata;
         plotdata.key = time.toInt();
-        plotdata.value = data.toDouble();
-        mean += data.toDouble();
-
+        plotdata.value = pv.toDouble();
+        mean += pv.toDouble();
         pvData.push_back(plotdata);
+
+        if( list.size() < 5){
+            haveSVMVData = true;
+            QString sv = list[3];
+            QString mv = list[4];
+            plotdata.value = sv.toDouble();
+            svData.push_back(plotdata);
+
+            plotdata.value = sv.toDouble();
+            svData.push_back(plotdata);
+        }
     }
 
     mean = mean / pvData.size();
@@ -1018,7 +1088,15 @@ void MainWindow::on_pushButton_OpenFile_clicked()
     infile.close();
 
     plot->graph(0)->data()->clear();
+    plot->graph(1)->data()->clear();
+    plot->graph(2)->data()->clear();
+
     plot->graph(0)->data()->add(pvData);
+    if( haveSVMVData ){
+        plot->graph(1)->data()->add(svData);
+        plot->graph(2)->data()->add(mvData);
+    }
+
     plot->yAxis->rescale();
     plot->xAxis->rescale();
 

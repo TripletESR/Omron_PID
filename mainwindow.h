@@ -83,13 +83,14 @@ private:
     bool modbusReady;
     bool atComboxEnable;
     bool spinBoxEnable;
+    bool muteLog;
 
     QVector<QCPGraphData> pvData;
     QVector<QCPGraphData> svData;
     QVector<QCPGraphData> mvData;
     double mean;
 
-    //TODO get PID constant
+    double pid_P, pid_I, pid_D;
 
 };
 
