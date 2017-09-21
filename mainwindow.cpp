@@ -380,11 +380,11 @@ void MainWindow::readReady()
     } else if (reply->error() == QModbusDevice::ProtocolError) {
         statusBar()->showMessage(tr("Read response error: %1 (Mobus exception: 0x%2)").
                                     arg(reply->errorString()).
-                                    arg(reply->rawResult().exceptionCode(), -1, 16), 5000);
+                                    arg(reply->rawResult().exceptionCode(), -1, 16), 0);
     } else {
         statusBar()->showMessage(tr("Read response error: %1 (code: 0x%2)").
                                     arg(reply->errorString()).
-                                    arg(reply->error(), -1, 16), 5000);
+                                    arg(reply->error(), -1, 16), 0);
     }
 
     reply->deleteLater();
@@ -534,50 +534,6 @@ void MainWindow::setAT(int atFlag)
     request(QModbusPdu::WriteSingleRegister, value);
 }
 
-void MainWindow::write(int address, int value)
-{
-    if (!omron) return;
-    statusBar()->clearMessage();
-
-    modbusReady = false;
-    QModbusDataUnit writeUnit(QModbusDataUnit::HoldingRegisters);
-    writeUnit.setValueCount(1);
-    writeUnit.setStartAddress(address);
-    writeUnit.setValue(0, value);
-
-    qDebug() << QString::number(writeUnit.startAddress(), 16);
-    qDebug() << writeUnit.value(0);
-
-    //for (uint i = 0; i < writeUnit.valueCount(); i++) {
-    //    if (table == QModbusDataUnit::Coils)
-    //        writeUnit.setValue(i, writeModel->m_coils[i + writeUnit.startAddress()]);
-    //    else
-    //        writeUnit.setValue(i, writeModel->m_holdingRegisters[i + writeUnit.startAddress()]);
-    //}
-
-    if (auto *reply = omron->sendWriteRequest(writeUnit, omronID)) {
-        if (!reply->isFinished()) {
-            connect(reply, &QModbusReply::finished, this, [this, reply]() {
-                if (reply->error() == QModbusDevice::ProtocolError) {
-                    statusBar()->showMessage(tr("Write response error: %1 (Mobus exception: 0x%2)")
-                        .arg(reply->errorString()).arg(reply->rawResult().exceptionCode(), -1, 16), 0);
-                } else if (reply->error() != QModbusDevice::NoError) {
-                    statusBar()->showMessage(tr("Write response error: %1 (code: 0x%2)").
-                        arg(reply->errorString()).arg(reply->error(), -1, 16), 0);
-                }
-                reply->deleteLater();
-                modbusReady = true;
-            });
-        } else {
-            // broadcast replies return immediately
-            reply->deleteLater();
-        }
-    } else {
-        statusBar()->showMessage(tr("Write error: ") + omron->errorString(), 5000);
-    }
-
-}
-
 void MainWindow::request(QModbusPdu::FunctionCode code, QByteArray cmd)
 {
     statusBar()->clearMessage();
@@ -664,8 +620,10 @@ void MainWindow::on_pushButton_Control_clicked()
         return;
     }
 
+    double iniTemp = 0;
     if(tempControlOnOff){
         on_pushButton_AskStatus_clicked();
+        iniTemp = temperature;
 
         //Looping ========================
         const double targetValue = ui->lineEdit_SV->text().toDouble();
@@ -734,12 +692,27 @@ void MainWindow::on_pushButton_Control_clicked()
         QTextStream stream(&outfile);
         QString lineout;
 
-        lineout.sprintf("###%s", QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss\n").toStdString().c_str());
+        QDateTime startTime = QDateTime::currentDateTime();
+
+        lineout.sprintf("###%s", startTime.toString("yyyy-MM-dd HH:mm:ss\n").toStdString().c_str());
+        stream << lineout;
+        if( mode == 1){
+            lineout = "### Control mode          :  Stable Temperature.\n";
+        }else{
+            lineout = "### Control mode          :  Fixed Time.\n";
+        }
         stream << lineout;
         lineout = "### Target Temperature          : " + QString::number(targetValue) + " C.\n";
         stream << lineout;
-        lineout = "### Temperature tolerance       : " + QString::number(tempTorr) + " C.\n";
-        stream << lineout;
+        if( mode == 1){
+            lineout = "### Temperature  stable time    : " + QString::number(tempStableTime) + " min.\n";
+            stream << lineout;
+            lineout = "### Temperature tolerance       : " + QString::number(tempTorr) + " C.\n";
+            stream << lineout;
+        }else{
+            lineout = "### Set-temp change time    : " + QString::number(tempStableTime) + " min.\n";
+            stream << lineout;
+        }
         lineout.sprintf("###%11s,\t%12s,\t%10s,\t%10s,\t%10s\n", "Date", "Date_t", "temp [C]", "SV [C]", "Output [%]");
         stream << lineout;
 
@@ -763,12 +736,16 @@ void MainWindow::on_pushButton_Control_clicked()
             QString cmd = addressStr + " 00 02 04" + valueStr;
             QByteArray value = QByteArray::fromHex(cmd.toStdString().c_str());
             request(QModbusPdu::WriteMultipleRegisters, value);
+
+            QDateTime currentTime = QDateTime::currentDateTime();
+            double elapsed = currentTime.toTime_t() - startTime.toTime_t(); // sec
+            elapsed = elapsed / 60. ; // min
             ui->lineEdit_CurrentSV->setText(QString::number(smallShift) + " C");
-            LogMsg("========= try to go to " + QString::number(smallShift) + " C.");
+            LogMsg("==== Set-temp : " + QString::number(smallShift) + " C. Elapse Time : " + QString::number(elapsed) + " mins.");
 
             int count = 0;
             muteLog = true;
-            QDateTime startTime = QDateTime::currentDateTime();
+            QDateTime smallStartTime = QDateTime::currentDateTime();
             do{
                 int modBusWaitTime = 0;
                 qDebug()  << "temp control. do-loop 1 = " << tempControlOnOff;
@@ -851,7 +828,7 @@ void MainWindow::on_pushButton_Control_clicked()
                     }
                 }else{
                     QDateTime currentTime = QDateTime::currentDateTime();
-                    int esplase = currentTime.toTime_t() - startTime.toTime_t();
+                    int esplase = currentTime.toTime_t() - smallStartTime.toTime_t();
                     if (esplase * 1000. > tempStableTime){
                         count = tempStableTime + 10; // just to make the count > tempStableTime
                     }
@@ -860,7 +837,7 @@ void MainWindow::on_pushButton_Control_clicked()
             }while( count < tempStableTime  && tempControlOnOff ); // if temperature stable for 10 min
             muteLog = false;
 
-            if( qAbs(temperature - targetValue)< tempTorr) {
+            if( mode == 1 && qAbs(temperature - targetValue)< tempTorr) {
                 lineout = "###=========== Target Temperature Reached =============";
                 stream << lineout;
                 outfile.flush();
@@ -868,7 +845,23 @@ void MainWindow::on_pushButton_Control_clicked()
                 break;
             }
 
+            if( mode == 2) {
+                lineout = "###=========== Time Up =============";
+                stream << lineout;
+                outfile.flush();
+                LogMsg(lineout);
+                break;
+            }
+
         }
+
+        //statistics
+        QDateTime endTime = QDateTime::currentDateTime();
+        int totalTime = endTime.toTime_t() - startTime.toTime_t(); // sec
+        totalTime = totalTime/60.; // min
+        LogMsg("Total time : " + QString::number(totalTime) + " mins = " + QString::number(totalTime/60.) + " hours.");
+        double tempChanged = qAbs(iniTemp - targetValue);
+        LogMsg("Average gradience : " + QString::number(totalTime/tempChanged) + " min/C." );
 
         //=========== now is the E5CC control
         //only measure temperature
@@ -1006,7 +999,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
 
         // set output file =================
         QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") +
-                "_tempControl_" + ui->comboBox_SeriesNumber->currentText() +".dat";
+                "_tempRecord_" + ui->comboBox_SeriesNumber->currentText() +".dat";
         QString filePath = DATA_PATH + "/" + fileName;
         LogMsg("data save to : " + filePath);
         QFile outfile(filePath);
@@ -1017,7 +1010,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
 
         lineout.sprintf("###%s", QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss\n").toStdString().c_str());
         stream << lineout;
-        lineout = "###Temperature Record.\n";
+        lineout = "###Temperature Recording.\n";
         stream << lineout;
         lineout.sprintf("###%11s,\t%12s,\t%10s,\t%10s,\t%10s\n", "Date", "Date_t", "temp [C]", "SV [C]", "Output [%]");
         stream << lineout;

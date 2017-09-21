@@ -33,7 +33,6 @@ private slots:
 
     void read(QModbusDataUnit::RegisterType type, quint16 adress, int size);
     void readReady();
-    void write(int address, int value);
     void request(QModbusPdu::FunctionCode code, QByteArray cmd); // no PDU reply
 
     void askTemperature();
