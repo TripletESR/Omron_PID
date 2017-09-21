@@ -50,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent) :
     plot->xAxis->setTicker(dateTicker);
     plot->xAxis2->setVisible(true);
     plot->yAxis2->setVisible(true);
-    plot->yAxis2->setLabel(" MV [%]");
+    plot->yAxis2->setLabel(" Output [%]");
     plot->yAxis2->setRangeLower(0.0);
     plot->xAxis2->setTicks(false);
     plot->yAxis2->setTicks(true);
@@ -60,6 +60,7 @@ MainWindow::MainWindow(QWidget *parent) :
     plot->axisRect()->setRangeDrag(Qt::Vertical);
     plot->axisRect()->setRangeZoom(Qt::Vertical);
     plot->replot();
+    //TODO legend of plot
 
     ui->comboBox_Func->addItem("0x00 Invalid", QModbusPdu::Invalid);
     ui->comboBox_Func->addItem("0x01 Read Coils", QModbusPdu::ReadCoils);
@@ -177,12 +178,12 @@ void MainWindow::findSeriesPortDevices()
     const auto infos = QSerialPortInfo::availablePorts();
     for (const QSerialPortInfo &info : infos) {
         //LogMsg("PortName     ="+info.portName() );
-        //LogMsg("description  ="+(!info.description().isEmpty() ?  info.description() : blankString) );
-        //LogMsg("manufacturer ="+(!info.manufacturer().isEmpty() ? info.manufacturer() : blankString) );
-        //LogMsg("serialNumber ="+(!info.serialNumber().isEmpty() ? info.serialNumber() : blankString) );
+        //LogMsg("description  ="+(!info.description().isEmpty() ?  info.description() : "") );
+        //LogMsg("manufacturer ="+(!info.manufacturer().isEmpty() ? info.manufacturer() : "") );
+        //LogMsg("serialNumber ="+(!info.serialNumber().isEmpty() ? info.serialNumber() : "") );
         //LogMsg("Location     ="+info.systemLocation()  );
-        //LogMsg("Vendor       ="+(info.vendorIdentifier() ? QString::number(info.vendorIdentifier(), 16) : blankString)  );
-        //LogMsg("Identifier   ="+(info.productIdentifier() ? QString::number(info.productIdentifier(), 16) : blankString));
+        //LogMsg("Vendor       ="+(info.vendorIdentifier() ? QString::number(info.vendorIdentifier(), 16) : "")  );
+        //LogMsg("Identifier   ="+(info.productIdentifier() ? QString::number(info.productIdentifier(), 16) : ""));
         //LogMsg("=======================");
 
         LogMsg(info.portName() + ", " + info.serialNumber() + ", " + info.manufacturer());
@@ -279,6 +280,39 @@ void MainWindow::on_pushButton_AskStatus_clicked()
             modbusReady = true;
         }
     }
+
+    //get PID constant
+    LogMsg("------ get Propertion band.");
+    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PID_P, 2);
+    i = 0;
+    while(!modbusReady) {
+        i++;
+        waitForMSec(300);
+        if( i > 10 ){
+            modbusReady = true;
+        }
+    }
+    LogMsg("------ get integration time.");
+    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PID_I, 2);
+    i = 0;
+    while(!modbusReady) {
+        i++;
+        waitForMSec(300);
+        if( i > 10 ){
+            modbusReady = true;
+        }
+    }
+    LogMsg("------ get derivative time.");
+    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PID_D, 2);
+    i = 0;
+    while(!modbusReady) {
+        i++;
+        waitForMSec(300);
+        if( i > 10 ){
+            modbusReady = true;
+        }
+    }
+
 }
 
 void MainWindow::read(QModbusDataUnit::RegisterType type, quint16 adress, int size)
@@ -651,6 +685,15 @@ void MainWindow::on_pushButton_Control_clicked()
     }
 
     if(tempControlOnOff){
+        askTemperature();
+        int i = 0;
+        while(!modbusReady) {
+            i++;
+            waitForMSec(300);
+            if( i > 10 ){
+                modbusReady = true;
+            }
+        }
 
         //Looping ========================
         const double targetValue = ui->lineEdit_SV->text().toDouble();
@@ -665,6 +708,33 @@ void MainWindow::on_pushButton_Control_clicked()
 
         const int direction = (temperature > targetValue ) ? (-1) : 1;
         LogMsg("Temperature step            : " + QString::number(direction * tempStepSize) + " C.");
+
+        //estimate total time
+        double estTransitionTime = 10 + tempStableTime/60/1000; // min
+        double estNumberTransition = qAbs(temperature-targetValue)/ tempStepSize;
+        double estSlope = estTransitionTime / tempStepSize ;
+        double estTotalTime = estTransitionTime * estNumberTransition;
+
+        QMessageBox box;
+        QString boxMsg;
+        boxMsg.sprintf("Estimated gradience  : %6.1 min/C \n"
+                       "Estimated total time : %6.1 min",
+                       estSlope,
+                       estTotalTime);
+        LogMsg("Estimated gradience  : " + QString::number(estSlope) + " min/C.");
+        LogMsg("Estimated total Time : " + QString::number(estTotalTime) + " min.");
+        box.setInformativeText("Do you want to proceed ?");
+        box.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        box.setDefaultButton(QMessageBox::Cancel);
+        if(box.exec() == QMessageBox::Cancel) {
+            tempControlOnOff = false;
+            ui->pushButton_Control->setStyleSheet("");
+            panalOnOff(true);
+            ui->pushButton_OpenFile->setEnabled(true);
+            ui->pushButton_RecordTemp->setEnabled(true);
+            LogMsg("=============== Slow Temperature control cancelled.======");
+            return;
+        }
 
         // set output file =================
         QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "_tempControl_ID="+ QString::number(omronID) +".dat";
