@@ -14,7 +14,7 @@
    <string>Omron Temp. Control</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QGridLayout" name="gridLayout_4" rowstretch="1,1,1" columnstretch="1,1">
+   <layout class="QGridLayout" name="gridLayout_4" rowstretch="2,2,1" columnstretch="1,1">
     <item row="0" column="1">
      <widget class="QGroupBox" name="groupBox_3">
       <property name="title">

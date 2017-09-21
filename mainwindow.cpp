@@ -40,11 +40,14 @@ MainWindow::MainWindow(QWidget *parent) :
     plot->xAxis->setLabel("Time");
     plot->yAxis->setLabel("Temp. [C]");
     plot->addGraph();
+    plot->graph(0)->setName("Temp.");
     plot->graph(0)->setPen(QPen(Qt::blue)); // PV
     plot->addGraph();
+    plot->graph(1)->setName("Set-temp");
     plot->graph(1)->setPen(QPen(Qt::red)); // SV
     plot->addGraph(plot->xAxis, plot->yAxis2);
-    plot->graph(2)->setPen(QPen(Qt::green)); // MV
+    plot->graph(2)->setName("Output");
+    plot->graph(2)->setPen(QPen(Qt::darkGreen)); // MV
     QSharedPointer<QCPAxisTickerDateTime> dateTicker(new QCPAxisTickerDateTime);
     dateTicker->setDateTimeFormat("MM/dd HH:mm:ss");
     plot->xAxis->setTicker(dateTicker);
@@ -59,8 +62,9 @@ MainWindow::MainWindow(QWidget *parent) :
     plot->setInteraction(QCP::iRangeZoom,true);
     plot->axisRect()->setRangeDrag(Qt::Vertical);
     plot->axisRect()->setRangeZoom(Qt::Vertical);
+    plot->legend->setVisible(true);
+    plot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
     plot->replot();
-    //TODO legend of plot
 
     ui->comboBox_Func->addItem("0x00 Invalid", QModbusPdu::Invalid);
     ui->comboBox_Func->addItem("0x01 Read Coils", QModbusPdu::ReadCoils);
