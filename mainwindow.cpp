@@ -686,12 +686,12 @@ void MainWindow::on_pushButton_Control_clicked()
         if( mode == 2) estTransitionTime = 0;
         double estNumberTransition = qAbs(temperature-targetValue)/ tempStepSize;
         double estSlope = (estTransitionTime + tempStableTime/60/1000) / tempStepSize ;
-        double estTotalTime = estTransitionTime * estNumberTransition;
+        double estTotalTime = (estTransitionTime + tempStableTime/60/1000) * estNumberTransition;
 
         QMessageBox box;
         QString boxMsg;
         if( mode == 1){
-            boxMsg.sprintf("======== Stable Mode ========== "
+            boxMsg.sprintf("======== Stable Mode ========== \n"
                            "Estimated transition time : %6.1f min. \n"
                            "Estimated gradience       : %6.1f min/C \n"
                            "Estimated total time      : %6.1f min = %6.1f hr",
@@ -699,7 +699,7 @@ void MainWindow::on_pushButton_Control_clicked()
                            estSlope,
                            estTotalTime, estTotalTime/60.);
         }else{
-            boxMsg.sprintf("======== Fixed time Mode ========== "
+            boxMsg.sprintf("======== Fixed time Mode ========== \n"
                            "Estimated gradience       : %6.1f min/C \n"
                            "Estimated total time      : %6.1f min = %6.1f hr",
                            estSlope,
@@ -724,7 +724,8 @@ void MainWindow::on_pushButton_Control_clicked()
         }
 
         // set output file =================
-        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "_tempControl_ID="+ QString::number(omronID) +".dat";
+        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") +
+                "_tempControl_" + ui->comboBox_SeriesNumber->currentText() +".dat";
         QString filePath = DATA_PATH + "/" + fileName;
         LogMsg("data save to : " + filePath);
         QFile outfile(filePath);
@@ -1004,7 +1005,8 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         }
 
         // set output file =================
-        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "_tempRecord_ID="+ QString::number(omronID) +".dat";
+        QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") +
+                "_tempControl_" + ui->comboBox_SeriesNumber->currentText() +".dat";
         QString filePath = DATA_PATH + "/" + fileName;
         LogMsg("data save to : " + filePath);
         QFile outfile(filePath);
@@ -1212,6 +1214,9 @@ void MainWindow::on_pushButton_Connect_clicked()
         ui->pushButton_Control->setEnabled(true);
         ui->pushButton_RecordTemp->setEnabled(true);
 
+        QString title = this->windowTitle();
+        this->setWindowTitle(title + " | " + ui->comboBox_SeriesNumber->currentText());
+
         getSetting();
 
     }else{
@@ -1301,10 +1306,10 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
 {
     if(!comboxEnable) return;
     if(index == 1){
-        ui->spinBox_TempStableTime->setEnabled(false);
+        ui->doubleSpinBox_TempTorr->setEnabled(false);
         ui->label_TimeStable->setText("Set-temp changes [min] :");
     }else{
-        ui->spinBox_TempStableTime->setEnabled(true);
+        ui->doubleSpinBox_TempTorr->setEnabled(true);
         ui->label_TimeStable->setText("Temp. stable for [min] :");
     }
 }

@@ -139,6 +139,18 @@
        </item>
        <item row="5" column="2">
         <widget class="QLabel" name="label_TimeStable">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>140</width>
+           <height>0</height>
+          </size>
+         </property>
          <property name="text">
           <string>Temp. stable for [min] :</string>
          </property>
