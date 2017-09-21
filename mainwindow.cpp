@@ -238,6 +238,7 @@ void MainWindow::panalOnOff(bool IO)
     ui->comboBox_AT->setEnabled(IO);
     ui->pushButton_ReadRH->setEnabled(IO);
     ui->pushButton_AskStatus->setEnabled(IO);
+    ui->pushButton_GetPID->setEnabled(IO);
     ui->pushButton_SetSV->setEnabled(IO);
     ui->spinBox_TempRecordTime->setEnabled(IO);
     ui->spinBox_TempStableTime->setEnabled(IO);
@@ -280,39 +281,6 @@ void MainWindow::on_pushButton_AskStatus_clicked()
             modbusReady = true;
         }
     }
-
-    //get PID constant
-    LogMsg("------ get Propertion band.");
-    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PID_P, 2);
-    i = 0;
-    while(!modbusReady) {
-        i++;
-        waitForMSec(300);
-        if( i > 10 ){
-            modbusReady = true;
-        }
-    }
-    LogMsg("------ get integration time.");
-    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PID_I, 2);
-    i = 0;
-    while(!modbusReady) {
-        i++;
-        waitForMSec(300);
-        if( i > 10 ){
-            modbusReady = true;
-        }
-    }
-    LogMsg("------ get derivative time.");
-    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PID_D, 2);
-    i = 0;
-    while(!modbusReady) {
-        i++;
-        waitForMSec(300);
-        if( i > 10 ){
-            modbusReady = true;
-        }
-    }
-
 }
 
 void MainWindow::read(QModbusDataUnit::RegisterType type, quint16 adress, int size)
@@ -717,12 +685,13 @@ void MainWindow::on_pushButton_Control_clicked()
 
         QMessageBox box;
         QString boxMsg;
-        boxMsg.sprintf("Estimated gradience  : %6.1 min/C \n"
-                       "Estimated total time : %6.1 min",
+        boxMsg.sprintf("Estimated gradience  : %6.1f min/C \n"
+                       "Estimated total time : %6.1f min",
                        estSlope,
                        estTotalTime);
         LogMsg("Estimated gradience  : " + QString::number(estSlope) + " min/C.");
         LogMsg("Estimated total Time : " + QString::number(estTotalTime) + " min.");
+        box.setText(boxMsg);
         box.setInformativeText("Do you want to proceed ?");
         box.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
         box.setDefaultButton(QMessageBox::Cancel);
@@ -1019,6 +988,8 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         stream << lineout;
 
         pvData.clear();
+        svData.clear();
+        mvData.clear();
         mean = 0;
         int numData = 0;
         //only measure temperature
@@ -1256,4 +1227,39 @@ void MainWindow::on_doubleSpinBox_MVupper_valueChanged(double arg1)
 
     plot->yAxis2->setRangeLower(MVupper*1.2);
     plot->replot();
+}
+
+void MainWindow::on_pushButton_GetPID_clicked()
+{
+    //get PID constant
+    LogMsg("------ get Propertion band.");
+    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PID_P, 2);
+    int i = 0;
+    while(!modbusReady) {
+        i++;
+        waitForMSec(300);
+        if( i > 10 ){
+            modbusReady = true;
+        }
+    }
+    LogMsg("------ get integration time.");
+    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PID_I, 2);
+    i = 0;
+    while(!modbusReady) {
+        i++;
+        waitForMSec(300);
+        if( i > 10 ){
+            modbusReady = true;
+        }
+    }
+    LogMsg("------ get derivative time.");
+    read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PID_D, 2);
+    i = 0;
+    while(!modbusReady) {
+        i++;
+        waitForMSec(300);
+        if( i > 10 ){
+            modbusReady = true;
+        }
+    }
 }

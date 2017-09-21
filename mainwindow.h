@@ -63,6 +63,8 @@ private slots:
 
     void on_doubleSpinBox_MVupper_valueChanged(double arg1);
 
+    void on_pushButton_GetPID_clicked();
+
 private:
     Ui::MainWindow *ui;
     QCustomPlot * plot;

@@ -23,6 +23,9 @@
       <layout class="QGridLayout" name="gridLayout_3" columnstretch="1,0,0,0,0">
        <item row="3" column="3">
         <widget class="QLineEdit" name="lineEdit_SV">
+         <property name="text">
+          <string>60</string>
+         </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
          </property>
@@ -293,9 +296,9 @@
         </widget>
        </item>
        <item row="3" column="0" colspan="2">
-        <widget class="QPushButton" name="pushButton_OpenFile">
+        <widget class="QPushButton" name="pushButton_GetPID">
          <property name="text">
-          <string>Open File</string>
+          <string>Get PID</string>
          </property>
         </widget>
        </item>
@@ -303,6 +306,13 @@
         <widget class="QPushButton" name="pushButton_RecordTemp">
          <property name="text">
           <string>Record Temp.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0" colspan="2">
+        <widget class="QPushButton" name="pushButton_OpenFile">
+         <property name="text">
+          <string>Open File</string>
          </property>
         </widget>
        </item>
