@@ -84,12 +84,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->comboBox_Func->addItem("0x2B Encapsulated Interface Transport", QModbusPdu::EncapsulatedInterfaceTransport);
     ui->comboBox_Func->addItem("0x100 Undefined Function Code", QModbusPdu::UndefinedFunctionCode);
 
-    atComboxEnable = false;
+    comboxEnable = false;
     ui->comboBox_AT->addItem("AT cancel");
     ui->comboBox_AT->addItem("100% AT execute");
     ui->comboBox_AT->addItem("40% AT execute");
     ui->comboBox_AT->setCurrentIndex(0);
-    atComboxEnable = true;
+
+    ui->comboBox_Mode->addItem("Stable", 1);
+    ui->comboBox_Mode->addItem("Fixed time", 2);
 
     findSeriesPortDevices();
     omron = NULL;
@@ -144,6 +146,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->comboBox_MemAddress->addItem("0x0E20 (adv) Aux. output 1 Assignment "    , 0x0E20);
     ui->comboBox_MemAddress->addItem("0x0E22 (adv) Aux. output 2 Assignment "    , 0x0E22);
     ui->comboBox_MemAddress->addItem("0x0E24 (adv) Aux. output 3 Assignment "    , 0x0E24);
+
+    comboxEnable = true;
+
+    ui->textEdit_Log->setTextColor(QColor(34,139,34,255));
+    LogMsg("The AT and RUN/STOP do not get from the device. Please be careful.");
+    ui->textEdit_Log->setTextColor(QColor(0,0,0,255));
 
 }
 
@@ -247,6 +255,9 @@ void MainWindow::panalOnOff(bool IO)
     ui->doubleSpinBox_TempStepSize->setEnabled(IO);
     ui->doubleSpinBox_MVlower->setEnabled(IO);
     ui->doubleSpinBox_MVupper->setEnabled(IO);
+    ui->comboBox_Mode->setEnabled(IO);
+    ui->checkBox_MuteLogMsg->setEnabled(IO);
+    ui->comboBox_MemAddress->setEnabled(IO);
     //ui->pushButton_OpenFile->setEnabled(IO);
 }
 
@@ -376,25 +387,22 @@ void MainWindow::readReady()
     modbusReady = true;
 }
 
-void MainWindow::askTemperature(int waitTime)
+void MainWindow::askTemperature()
 {
     LogMsg("------ get Temperature.");
     read(QModbusDataUnit::HoldingRegisters, E5CC_Address::PV, 2);
-    //while( !modbusReady) waitForMSec(waitTime);
 }
 
-void MainWindow::askSetPoint(int waitTime)
+void MainWindow::askSetPoint()
 {
     LogMsg("------ get Set Point.");
     read(QModbusDataUnit::HoldingRegisters, E5CC_Address::SV, 2);
-    //while( !modbusReady) waitForMSec(waitTime);
 }
 
-void MainWindow::askMV(int waitTime)
+void MainWindow::askMV()
 {
     LogMsg("------ get MV.");
     read(QModbusDataUnit::HoldingRegisters, E5CC_Address::MV, 2);
-    //while( !modbusReady) waitForMSec(waitTime);
 }
 
 void MainWindow::askMVupper()
@@ -653,24 +661,16 @@ void MainWindow::on_pushButton_Control_clicked()
     }
 
     if(tempControlOnOff){
-        askTemperature();
-        int i = 0;
-        while(!modbusReady) {
-            i++;
-            waitForMSec(300);
-            if( i > 10 ){
-                modbusReady = true;
-            }
-        }
+        on_pushButton_AskStatus_clicked();
 
         //Looping ========================
         const double targetValue = ui->lineEdit_SV->text().toDouble();
-        const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000;
-        const int tempStableTime = ui->spinBox_TempStableTime->value() * 60 * 1000;
+        const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000; // msec
+        const int tempStableTime = ui->spinBox_TempStableTime->value() * 60 * 1000; // msec
         const double tempTorr = ui->doubleSpinBox_TempTorr->value();
         const double tempStepSize = ui->doubleSpinBox_TempStepSize->value();
+        const int mode = ui->comboBox_Mode->currentData().toInt();
 
-        on_pushButton_AskStatus_clicked();
         LogMsg("Current Temperature         : " + QString::number(temperature) + " C.");
         LogMsg("Target Temperature          : " + QString::number(targetValue) + " C.");
 
@@ -678,19 +678,33 @@ void MainWindow::on_pushButton_Control_clicked()
         LogMsg("Temperature step            : " + QString::number(direction * tempStepSize) + " C.");
 
         //estimate total time
-        double estTransitionTime = 10 + tempStableTime/60/1000; // min
+        double estTransitionTime = 5; //min
+        if( mode == 2) estTransitionTime = 0;
         double estNumberTransition = qAbs(temperature-targetValue)/ tempStepSize;
-        double estSlope = estTransitionTime / tempStepSize ;
+        double estSlope = (estTransitionTime + tempStableTime/60/1000) / tempStepSize ;
         double estTotalTime = estTransitionTime * estNumberTransition;
 
         QMessageBox box;
         QString boxMsg;
-        boxMsg.sprintf("Estimated gradience  : %6.1f min/C \n"
-                       "Estimated total time : %6.1f min",
-                       estSlope,
-                       estTotalTime);
+        if( mode == 1){
+            boxMsg.sprintf("======== Stable Mode ========== "
+                           "Estimated transition time : %6.1f min. \n"
+                           "Estimated gradience       : %6.1f min/C \n"
+                           "Estimated total time      : %6.1f min = %6.1f hr",
+                           estTransitionTime,
+                           estSlope,
+                           estTotalTime, estTotalTime/60.);
+        }else{
+            boxMsg.sprintf("======== Fixed time Mode ========== "
+                           "Estimated gradience       : %6.1f min/C \n"
+                           "Estimated total time      : %6.1f min = %6.1f hr",
+                           estSlope,
+                           estTotalTime, estTotalTime/60.);
+
+        }
+        LogMsg("Estimated tran. Time : " + QString::number(estTransitionTime) + " min.");
         LogMsg("Estimated gradience  : " + QString::number(estSlope) + " min/C.");
-        LogMsg("Estimated total Time : " + QString::number(estTotalTime) + " min.");
+        LogMsg("Estimated total Time : " + QString::number(estTotalTime) + " min. = " + QString::number(estTotalTime/60.) + " hr.");
         box.setText(boxMsg);
         box.setInformativeText("Do you want to proceed ?");
         box.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
@@ -749,7 +763,9 @@ void MainWindow::on_pushButton_Control_clicked()
 
             int count = 0;
             muteLog = true;
+            QDateTime startTime = QDateTime::currentDateTime();
             do{
+                int modBusWaitTime = 0;
                 qDebug()  << "temp control. do-loop 1 = " << tempControlOnOff;
                 if(!tempControlOnOff) break;
 
@@ -758,6 +774,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 while(!modbusReady) {
                     i++;
                     waitForMSec(300);
+                    modBusWaitTime += 300;
                     if( i > 10 ){
                         modbusReady = true;
                     }
@@ -767,6 +784,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 while(!modbusReady) {
                     i++;
                     waitForMSec(300);
+                    modBusWaitTime += 300;
                     if( i > 10 ){
                         modbusReady = true;
                     }
@@ -813,17 +831,25 @@ void MainWindow::on_pushButton_Control_clicked()
                 stream << lineout;
                 outfile.flush(); // write to file immedinately, but seem not working...
 
-                waitForMSec(tempGetTime);
+                waitForMSec(tempGetTime - modBusWaitTime);
 
-                if( qAbs(temperature - smallShift) <= tempTorr ){
-                    count += tempGetTime;
-                    LogMsg( " temperature stable for : " +  QString::number(count/1000.) + " sec. |"
-                            +QString::number(smallShift) + " - " + QString::number(temperature) + "| < "  + QString::number(tempTorr) + " C");
-                }else{
-                    if(count > 0){
-                        LogMsg( " temperature over-shoot. reset stable counter.");
+                if( mode == 1){ //========== for stable mode
+                    if( qAbs(temperature - smallShift) <= tempTorr ){
+                        count += tempGetTime;
+                        LogMsg( " temperature stable for : " +  QString::number(count/1000.) + " sec. |"
+                                +QString::number(smallShift) + " - " + QString::number(temperature) + "| < "  + QString::number(tempTorr) + " C");
+                    }else{
+                        if(count > 0){
+                            LogMsg( " temperature over-shoot. reset stable counter.");
+                        }
+                        count = 0;
                     }
-                    count = 0;
+                }else{
+                    QDateTime currentTime = QDateTime::currentDateTime();
+                    int esplase = currentTime.toTime_t() - startTime.toTime_t();
+                    if (esplase * 1000. > tempStableTime){
+                        count = tempStableTime + 10; // just to make the count > tempStableTime
+                    }
                 }
 
             }while( count < tempStableTime  && tempControlOnOff ); // if temperature stable for 10 min
@@ -843,12 +869,14 @@ void MainWindow::on_pushButton_Control_clicked()
         //only measure temperature
         muteLog = true;
         while(tempControlOnOff){
+            int modBusWaitTime = 0;
             qDebug()  << "temp control. do-loop 2 = " << tempControlOnOff;
             askTemperature();
             int i = 0;
             while(!modbusReady) {
                 i++;
                 waitForMSec(300);
+                modBusWaitTime += 300;
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -858,6 +886,7 @@ void MainWindow::on_pushButton_Control_clicked()
             while(!modbusReady) {
                 i++;
                 waitForMSec(300);
+                modBusWaitTime += 300;
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -904,7 +933,7 @@ void MainWindow::on_pushButton_Control_clicked()
             stream << lineout;
             outfile.flush(); // write to file immedinately, but seem not working...
 
-            waitForMSec(tempGetTime);
+            waitForMSec(tempGetTime -  modBusWaitTime);
 
         };
         muteLog = false;
@@ -921,7 +950,7 @@ void MainWindow::on_pushButton_Control_clicked()
 
 void MainWindow::on_comboBox_AT_currentIndexChanged(int index)
 {
-    if(!atComboxEnable) return;
+    if(!comboxEnable) return;
     setAT(index);
 }
 
@@ -1262,4 +1291,33 @@ void MainWindow::on_pushButton_GetPID_clicked()
             modbusReady = true;
         }
     }
+}
+
+void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
+{
+    if(!comboxEnable) return;
+    if(index == 1){
+        ui->spinBox_TempStableTime->setEnabled(false);
+        ui->label_TimeStable->setText("Set-temp changes [min] :");
+    }else{
+        ui->spinBox_TempStableTime->setEnabled(true);
+        ui->label_TimeStable->setText("Temp. stable for [min] :");
+    }
+}
+
+void MainWindow::on_checkBox_MuteLogMsg_clicked(bool checked)
+{
+    if ( checked ){
+        muteLog = true;
+    }else{
+        muteLog = false;
+    }
+}
+
+void MainWindow::on_comboBox_MemAddress_currentTextChanged(const QString &arg1)
+{
+    if(!comboxEnable) return;
+    quint16 address = ui->comboBox_MemAddress->currentData().toUInt();
+    LogMsg("--------- read " + arg1);
+    read(QModbusDataUnit::HoldingRegisters, address, 2);
 }

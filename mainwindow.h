@@ -36,34 +36,38 @@ private slots:
     void write(int address, int value);
     void request(QModbusPdu::FunctionCode code, QByteArray cmd); // no PDU reply
 
-    void askTemperature(int waitTime = 500);
-    void askSetPoint(int waitTime = 500);
-    void askMV(int waitTime = 500);
+    void askTemperature();
+    void askSetPoint();
+    void askMV();
     void askMVupper();
     void askMVlower();
     void getSetting();
-
     void setAT(int atFlag);
 
-    void on_pushButton_AskStatus_clicked();
     void on_lineEdit_Cmd_returnPressed();
+
+    void on_pushButton_Connect_clicked();
+    void on_pushButton_OpenFile_clicked();
+    void on_pushButton_AskStatus_clicked();
     void on_pushButton_SetSV_clicked();
+    void on_pushButton_GetPID_clicked();
+    void on_pushButton_RecordTemp_clicked();
+    void on_pushButton_ReadRH_clicked();
     void on_pushButton_Control_clicked();
 
     void on_comboBox_AT_currentIndexChanged(int index);
+    void on_comboBox_Mode_currentIndexChanged(int index);
+    void on_comboBox_MemAddress_currentTextChanged(const QString &arg1);
+
     void on_checkBox_RunSop_clicked();
-    void on_pushButton_RecordTemp_clicked();
-    void on_pushButton_ReadRH_clicked();
+    void on_checkBox_MuteLogMsg_clicked(bool checked);
+
     void on_spinBox_DeviceAddress_valueChanged(int arg1);
 
-    void on_pushButton_OpenFile_clicked();
-    void on_pushButton_Connect_clicked();
-
     void on_doubleSpinBox_MVlower_valueChanged(double arg1);
-
     void on_doubleSpinBox_MVupper_valueChanged(double arg1);
 
-    void on_pushButton_GetPID_clicked();
+
 
 private:
     Ui::MainWindow *ui;
@@ -83,7 +87,7 @@ private:
     bool tempControlOnOff;
     bool tempRecordOnOff;
     bool modbusReady;
-    bool atComboxEnable;
+    bool comboxEnable;
     bool spinBoxEnable;
     bool muteLog;
 
