@@ -906,7 +906,7 @@ void MainWindow::on_pushButton_Control_clicked()
             }
         }
 
-        double totalTime = totalElapse.elapsed() /1000./60.; // min
+        double totalTime = totalElapse.elapsed() /1000./60. + dayCounter * 24. * 60.; // min
         LogMsg("Total time : " + QString::number(totalTime) + " mins = " + QString::number(totalTime/60.) + " hours.");
         double tempChanged = qAbs(iniTemp - temperature);
         LogMsg("Average gradience : " + QString::number(totalTime/tempChanged) + " min/C." );
@@ -1071,7 +1071,6 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         mvData.clear();
         //only measure temperature
         muteLog = ui->checkBox_MuteLogMsg->isChecked();
-        timer->start();
         while(tempRecordOnOff){
             timer->start(tempGetTime);
             askTemperature();
