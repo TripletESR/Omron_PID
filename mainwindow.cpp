@@ -95,6 +95,11 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->comboBox_Mode->addItem("Stable", 1);
     ui->comboBox_Mode->addItem("Fixed time", 2);
+    ui->comboBox_Mode->addItem("Fixed rate", 3);
+
+    ui->comboBox_Mode->setItemData(0, QBrush(Qt::black), Qt::TextColorRole);
+    ui->comboBox_Mode->setItemData(1, QBrush(Qt::red), Qt::TextColorRole);
+    ui->comboBox_Mode->setItemData(2, QBrush(Qt::blue), Qt::TextColorRole);
 
     findSeriesPortDevices();
     omron = NULL;
@@ -612,9 +617,10 @@ void MainWindow::on_pushButton_Control_clicked()
 
         //estimate total time
         double estTransitionTime = 5; //min
-        if( mode == 2) estTransitionTime = 0;
+        if( mode == 2 || mode == 3) estTransitionTime = 0;
         double estNumberTransition = qAbs(temperature-targetValue)/ tempStepSize;
         double estSlope = (estTransitionTime + tempStableTime/60/1000) / tempStepSize ;
+        if( mode == 3 ) estSlope = tempStableTime; // msec/C
         double estTotalTime = (estTransitionTime + tempStableTime/60/1000) * estNumberTransition;
 
         QMessageBox box;
@@ -627,13 +633,18 @@ void MainWindow::on_pushButton_Control_clicked()
                            estTransitionTime,
                            estSlope,
                            estTotalTime, estTotalTime/60.);
-        }else{
-            boxMsg.sprintf("======== Fixed time Mode ========== \n"
-                           "Estimated gradience       : %6.1f min/C \n"
-                           "Estimated total time      : %6.1f min = %6.1f hr",
+        }else if(mode == 2){
+            boxMsg.sprintf("======== Fixed Time Mode ========== \n"
+                           "Estimated gradience  : %6.1f min/C \n"
+                           "Estimated total time : %6.1f min = %6.1f hr",
                            estSlope,
                            estTotalTime, estTotalTime/60.);
-
+        }else if(mode == 3){
+            boxMsg.sprintf("======== Fixed Rate Mode ========== \n"
+                           "Set-temp Gradience  : %6.1f min/C \n"
+                           "Total time          : %6.1f min = %6.1f hr",
+                           estSlope,
+                           estTotalTime, estTotalTime/60.);
         }
         LogMsg("Estimated tran. Time : " + QString::number(estTransitionTime) + " min.");
         LogMsg("Estimated gradience  : " + QString::number(estSlope) + " min/C.");
@@ -668,8 +679,10 @@ void MainWindow::on_pushButton_Control_clicked()
         stream << lineout;
         if( mode == 1){
             lineout = "### Control mode          :  Stable Temperature.\n";
-        }else{
+        }else if(mode == 2){
             lineout = "### Control mode          :  Fixed Time.\n";
+        }else if(mode == 3){
+            lineout = "### Control mode          :  Set-temp Fixed Rate. \n";
         }
         stream << lineout;
         lineout = "### Target Temperature          : " + QString::number(targetValue) + " C.\n";
@@ -679,8 +692,11 @@ void MainWindow::on_pushButton_Control_clicked()
             stream << lineout;
             lineout = "### Temperature tolerance       : " + QString::number(tempTorr) + " C.\n";
             stream << lineout;
-        }else{
+        }else if(mode == 2){
             lineout = "### Set-temp change time    : " + QString::number(tempStableTime) + " min.\n";
+            stream << lineout;
+        }else if(mode == 3){
+            lineout = "### Set-temp change rate    : " + QString::number(tempStableTime) + " min/C.\n";
             stream << lineout;
         }
         lineout.sprintf("###%11s,\t%12s,\t%10s,\t%10s,\t%10s\n", "Date", "Date_t", "temp [C]", "SV [C]", "Output [%]");
@@ -690,6 +706,7 @@ void MainWindow::on_pushButton_Control_clicked()
         pvData.clear();
         svData.clear();
         mvData.clear();
+        double old_smallShift = temperature;
         double smallShift = targetValue;
         while(tempControlOnOff){
             //----------------Set SV
@@ -698,6 +715,12 @@ void MainWindow::on_pushButton_Control_clicked()
                 smallShift = temperature + direction * tempStepSize  ;
                 //else, smallshift = target value.
             }
+
+            if( mode == 3){
+                smallShift = old_smallShift + direction * tempStepSize  ;
+                old_smallShift = smallShift;
+            }
+
             double sp_input = smallShift / tempDecimal;
             int sp_2 = (qint16) (sp_input + 0.5);
             qDebug() << sp_input << "," << sp_2;
@@ -793,9 +816,14 @@ void MainWindow::on_pushButton_Control_clicked()
                         }
                         count = 0;
                     }
-                }else{
+                }else if(mode == 2){
                     int esplase = currentTime.toTime_t() - smallStartTime.toTime_t();
                     if (esplase * 1000. > tempStableTime){
+                        count = tempStableTime + 10; // just to make the count > tempStableTime
+                    }
+                }else if(mode == 3){
+                    int esplase = currentTime.toTime_t() - smallStartTime.toTime_t();
+                    if (esplase * 1000. > estSlope * 0.1){
                         count = tempStableTime + 10; // just to make the count > tempStableTime
                     }
                 }
@@ -811,14 +839,13 @@ void MainWindow::on_pushButton_Control_clicked()
                 break;
             }
 
-            if( mode == 2) {
+            if( mode == 2 || mode == 3) {
                 lineout = "###=========== Time Up =============";
                 stream << lineout;
                 outfile.flush();
                 LogMsg(lineout);
                 break;
             }
-
         }
 
         //statistics
@@ -1253,10 +1280,25 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
     if(!comboxEnable) return;
     if(index == 1){
         ui->doubleSpinBox_TempTorr->setEnabled(false);
+        ui->doubleSpinBox_TempStepSize->setEnabled(true);
+        ui->doubleSpinBox_TempStepSize->setValue(0.5);
+        ui->comboBox_Mode->setStyleSheet("color: #FF0000");
+        ui->label_TimeStable->setStyleSheet("color: #FF0000");
         ui->label_TimeStable->setText("Set-temp changes [min] :");
-    }else{
+    }else if(index == 0){
         ui->doubleSpinBox_TempTorr->setEnabled(true);
+        ui->doubleSpinBox_TempStepSize->setEnabled(true);
+        ui->doubleSpinBox_TempStepSize->setValue(0.5);
+        ui->comboBox_Mode->setStyleSheet("");
+        ui->label_TimeStable->setStyleSheet("");
         ui->label_TimeStable->setText("Temp. stable for [min] :");
+    }else if(index == 2){
+        ui->doubleSpinBox_TempTorr->setEnabled(false);
+        ui->doubleSpinBox_TempStepSize->setEnabled(false);
+        ui->doubleSpinBox_TempStepSize->setValue(0.1);
+        ui->comboBox_Mode->setStyleSheet("color: #0000FF");
+        ui->label_TimeStable->setStyleSheet("color: #0000FF");
+        ui->label_TimeStable->setText("Set-temp rate [min/C] :");
     }
 }
 
