@@ -597,7 +597,6 @@ void MainWindow::on_pushButton_Control_clicked()
         on_pushButton_AskStatus_clicked();
         iniTemp = temperature;
 
-        //Looping ========================
         const double targetValue = ui->lineEdit_SV->text().toDouble();
         const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000; // msec
         const int tempStableTime = ui->spinBox_TempStableTime->value() * 60 * 1000; // msec
@@ -687,14 +686,17 @@ void MainWindow::on_pushButton_Control_clicked()
         lineout.sprintf("###%11s,\t%12s,\t%10s,\t%10s,\t%10s\n", "Date", "Date_t", "temp [C]", "SV [C]", "Output [%]");
         stream << lineout;
 
+        //Looping ========================
         pvData.clear();
         svData.clear();
         mvData.clear();
         double smallShift = targetValue;
         while(tempControlOnOff){
             //----------------Set SV
-            if(qAbs(temperature-targetValue) >= tempStepSize){
+            if(direction * (targetValue - temperature) >= tempStepSize){
+                // when direction is +1, when temperature smaller than tempStepSize, incrase smallshift by a step size.
                 smallShift = temperature + direction * tempStepSize  ;
+                //else, smallshift = target value.
             }
             double sp_input = smallShift / tempDecimal;
             int sp_2 = (qint16) (sp_input + 0.5);
