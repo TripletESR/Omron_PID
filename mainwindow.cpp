@@ -713,7 +713,9 @@ void MainWindow::on_pushButton_Control_clicked()
             if(direction * (targetValue - temperature) >= tempStepSize){
                 // when direction is +1, when temperature smaller than tempStepSize, incrase smallshift by a step size.
                 smallShift = temperature + direction * tempStepSize  ;
+            }else{
                 //else, smallshift = target value.
+                smallShift = targetValue;
             }
 
             if( mode == 3){
@@ -721,21 +723,20 @@ void MainWindow::on_pushButton_Control_clicked()
                 old_smallShift = smallShift;
             }
 
+            QDateTime currentTime = QDateTime::currentDateTime();
+            double elapsed = currentTime.toTime_t() - startTime.toTime_t(); // sec
+            elapsed = elapsed / 60. ; // min
+            ui->lineEdit_CurrentSV->setText(QString::number(smallShift) + " C");
+            LogMsg("==== Set-temp : " + QString::number(smallShift) + " C. Elapse Time : " + QString::number(elapsed) + " mins.");
+
             double sp_input = smallShift / tempDecimal;
             int sp_2 = (qint16) (sp_input + 0.5);
-            qDebug() << sp_input << "," << sp_2;
             QString valueStr = formatHex(sp_2, 8);
             QString addressStr = formatHex(E5CC_Address::SV, 4);
 
             QString cmd = addressStr + " 00 02 04" + valueStr;
             QByteArray value = QByteArray::fromHex(cmd.toStdString().c_str());
             request(QModbusPdu::WriteMultipleRegisters, value);
-
-            QDateTime currentTime = QDateTime::currentDateTime();
-            double elapsed = currentTime.toTime_t() - startTime.toTime_t(); // sec
-            elapsed = elapsed / 60. ; // min
-            ui->lineEdit_CurrentSV->setText(QString::number(smallShift) + " C");
-            LogMsg("==== Set-temp : " + QString::number(smallShift) + " C. Elapse Time : " + QString::number(elapsed) + " mins.");
 
             int count = 0;
             muteLog = true;
@@ -817,11 +818,13 @@ void MainWindow::on_pushButton_Control_clicked()
                         count = 0;
                     }
                 }else if(mode == 2){
+                    QDateTime currentTime = QDateTime::currentDateTime();
                     int esplase = currentTime.toTime_t() - smallStartTime.toTime_t();
                     if (esplase * 1000. > tempStableTime){
                         count = tempStableTime + 10; // just to make the count > tempStableTime
                     }
                 }else if(mode == 3){
+                    QDateTime currentTime = QDateTime::currentDateTime();
                     int esplase = currentTime.toTime_t() - smallStartTime.toTime_t();
                     if (esplase * 1000. > estSlope * 0.1){
                         count = tempStableTime + 10; // just to make the count > tempStableTime
@@ -831,16 +834,12 @@ void MainWindow::on_pushButton_Control_clicked()
             }while( count < tempStableTime  && tempControlOnOff ); // if temperature stable for 10 min
             muteLog = false;
 
-            if( mode == 1 && qAbs(temperature - targetValue)< tempTorr) {
-                lineout = "###=========== Target Temperature Reached =============";
-                stream << lineout;
-                outfile.flush();
-                LogMsg(lineout);
-                break;
-            }
-
-            if( mode == 2 || mode == 3) {
-                lineout = "###=========== Time Up =============";
+            if (smallShift == targetValue){
+                if( mode == 1 ) {
+                    lineout = "###=========== Target Temperature Reached =============";
+                }else if( mode == 2 || mode == 3) {
+                    lineout = "###=========== Time Up  =============";
+                }
                 stream << lineout;
                 outfile.flush();
                 LogMsg(lineout);
