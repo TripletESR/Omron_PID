@@ -587,12 +587,14 @@ void MainWindow::on_pushButton_Control_clicked()
     ui->pushButton_OpenFile->setEnabled(!tempControlOnOff);
     ui->pushButton_RecordTemp->setEnabled(!tempControlOnOff);
 
+
     if(tempControlOnOff) {
         LogMsg("================ Temperature control =====");
         ui->pushButton_Control->setStyleSheet("background-color: rgb(0,255,0)");
     }else{
         LogMsg("================ Temperature control Off =====");
         ui->pushButton_Control->setStyleSheet("");
+        on_comboBox_Mode_currentIndexChanged(ui->comboBox_Mode->currentIndex());
         qDebug()  << "temp control. = " << tempControlOnOff;
         return;
     }
@@ -620,8 +622,11 @@ void MainWindow::on_pushButton_Control_clicked()
         if( mode == 2 || mode == 3) estTransitionTime = 0;
         double estNumberTransition = qAbs(temperature-targetValue)/ tempStepSize;
         double estSlope = (estTransitionTime + tempStableTime/60/1000) / tempStepSize ;
-        if( mode == 3 ) estSlope = tempStableTime; // msec/C
         double estTotalTime = (estTransitionTime + tempStableTime/60/1000) * estNumberTransition;
+        if( mode == 3 ) {
+            estSlope = ui->spinBox_TempStableTime->value(); // min/C
+            estTotalTime = estSlope * qAbs(temperature-targetValue);
+        }
 
         QMessageBox box;
         QString boxMsg;
@@ -674,6 +679,8 @@ void MainWindow::on_pushButton_Control_clicked()
         QString filePath = DATA_PATH + "/" + fileName;
         LogMsg("data save to : " + filePath);
         QFile outfile(filePath);
+
+        //ShowTime(startTime); // need to be another class, run at other timeline,use signal and slot to update.
 
         outfile.open(QIODevice::WriteOnly);
         QTextStream stream(&outfile);
@@ -830,7 +837,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 }else if(mode == 3){
                     QDateTime currentTime = QDateTime::currentDateTime();
                     int esplase = currentTime.toTime_t() - smallStartTime.toTime_t();
-                    if (esplase * 1000. > estSlope * 0.1){
+                    if (esplase * 1000. > estSlope *60 * 1000 * 0.1){
                         count = tempStableTime + 10; // just to make the count > tempStableTime
                     }
                 }
@@ -856,7 +863,7 @@ void MainWindow::on_pushButton_Control_clicked()
         int totalTime = endTime.toTime_t() - startTime.toTime_t(); // sec
         totalTime = totalTime/60.; // min
         LogMsg("Total time : " + QString::number(totalTime) + " mins = " + QString::number(totalTime/60.) + " hours.");
-        double tempChanged = qAbs(iniTemp - targetValue);
+        double tempChanged = qAbs(iniTemp - temperature);
         LogMsg("Average gradience : " + QString::number(totalTime/tempChanged) + " min/C." );
 
         //=========== now is the E5CC control
