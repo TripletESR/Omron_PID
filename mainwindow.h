@@ -94,7 +94,7 @@ private:
 
     double pid_P, pid_I, pid_D;
 
-    QTimer * timer;
+    QTimer * getTempTimer;
     QTimer * clock;
     QTime totalElapse;
     bool checkDay;

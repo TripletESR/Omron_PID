@@ -30,8 +30,8 @@ MainWindow::MainWindow(QWidget *parent) :
     spinBoxEnable = false;
     muteLog = false;
     tempDecimal = 0.1; // for 0.1
-    timer = new QTimer(this);
-    timer->setSingleShot(true);
+    getTempTimer = new QTimer(this);
+    getTempTimer->setSingleShot(true);
     clock = new QTimer(this);
     clock->stop();
     connect(clock, SIGNAL(timeout()), this, SLOT(showTime()));
@@ -178,7 +178,7 @@ MainWindow::~MainWindow()
     clock->stop();
 
     delete clock;
-    delete timer;
+    delete getTempTimer;
     delete plot;
     delete omron;
     delete ui;
@@ -800,7 +800,7 @@ void MainWindow::on_pushButton_Control_clicked()
             int count = 0;
             muteLog = ui->checkBox_MuteLogMsg->isChecked();
             do{
-                timer->start(tempGetTime);
+                getTempTimer->start(tempGetTime);
                 qDebug()  << "temp control. do-loop 1 = " << tempControlOnOff;
                 if(!tempControlOnOff) break;
 
@@ -860,7 +860,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 stream << lineout;
                 stream.flush();
 
-                while(timer->remainingTime() != -1 ){
+                while(getTempTimer->remainingTime() != -1 ){
                     waitForMSec(10);
                 }
 
@@ -1072,7 +1072,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         //only measure temperature
         muteLog = ui->checkBox_MuteLogMsg->isChecked();
         while(tempRecordOnOff){
-            timer->start(tempGetTime);
+            getTempTimer->start(tempGetTime);
             askTemperature();
             int i = 0;
             while(!modbusReady) {
@@ -1132,7 +1132,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             stream << lineout;
             stream.flush();
 
-            while(timer->remainingTime() != -1 ){
+            while(getTempTimer->remainingTime() != -1 ){
                 waitForMSec(10);
             }
         };
