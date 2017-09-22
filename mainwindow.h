@@ -97,6 +97,8 @@ private:
     QTimer * timer;
     QTimer * clock;
     QTime totalElapse;
+    bool checkDay;
+    int dayCounter;
 };
 
 #endif // MAINWINDOW_H

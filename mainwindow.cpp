@@ -36,6 +36,8 @@ MainWindow::MainWindow(QWidget *parent) :
     clock->stop();
     connect(clock, SIGNAL(timeout()), this, SLOT(showTime()));
     totalElapse.setHMS(0,0,0,0);
+    dayCounter = 0;
+    checkDay = false;
 
     //Check Temp Directory, is not exist, create
     QDir myDir;
@@ -263,9 +265,17 @@ void MainWindow::panalOnOff(bool IO)
 
 void MainWindow::showTime()
 {
+    double hour = totalElapse.elapsed()/1000./60./60.;
+    if( checkDay && hour <= 22){
+        dayCounter ++;
+        checkDay = false;
+    }
+    if(hour > 22){
+        checkDay = true;
+    }
     QTime t(0,0,0,0);
     t = t.addMSecs(totalElapse.elapsed());
-    ui->lineEdit_clock->setText(t.toString("HH:mm:ss:zzz"));
+    ui->lineEdit_clock->setText(QString::number(dayCounter) + "/" + t.toString("HH:mm:ss:zzz"));
     //qDebug() << "==========" << t.msec();
 }
 
