@@ -32,6 +32,10 @@ MainWindow::MainWindow(QWidget *parent) :
     tempDecimal = 0.1; // for 0.1
     timer = new QTimer(this);
     timer->setSingleShot(true);
+    clock = new QTimer(this);
+    clock->stop();
+    connect(clock, SIGNAL(timeout()), this, SLOT(showTime()));
+    elapse.setHMS(0,0,0,0);
 
     //Check Temp Directory, is not exist, create
     QDir myDir;
@@ -169,6 +173,9 @@ MainWindow::~MainWindow()
 {
     if (omron) omron->disconnectDevice();
 
+    clock->stop();
+
+    delete clock;
     delete timer;
     delete plot;
     delete omron;
@@ -247,6 +254,13 @@ void MainWindow::panalOnOff(bool IO)
     ui->comboBox_Mode->setEnabled(IO);
     ui->checkBox_MuteLogMsg->setEnabled(IO);
     ui->comboBox_MemAddress->setEnabled(IO);
+}
+
+void MainWindow::showTime()
+{
+    elapse = elapse.addMSecs(100);
+    ui->lineEdit_clock->setText(elapse.toString("HH:mm:ss:zzz"));
+    qDebug() << "==========" << elapse.msec();
 }
 
 void MainWindow::on_pushButton_AskStatus_clicked()
@@ -632,7 +646,6 @@ void MainWindow::on_pushButton_Control_clicked()
         double estSlope = (estTransitionTime + tempStableTime/60/1000) / tempStepSize ;
         double estTotalTime = (estTransitionTime + tempStableTime/60/1000) * estNumberTransition;
         if( mode == 3 ) {
-            tempStableTime = tempStableTime * 0.1;
             estSlope = ui->spinBox_TempStableTime->value(); // min/C
             estTotalTime = estSlope * qAbs(temperature-targetValue);
         }
@@ -716,7 +729,7 @@ void MainWindow::on_pushButton_Control_clicked()
             lineout = "### Set-temp change time    : " + QString::number(tempStableTime) + " min.\n";
             stream << lineout;
         }else if(mode == 3){
-            lineout = "### Set-temp change rate    : " + QString::number(tempStableTime) + " min/0.1C.\n";
+            lineout = "### Set-temp change rate    : " + QString::number(tempStableTime) + " min/C.\n";
             stream << lineout;
         }
         lineout.sprintf("###%11s,\t%12s,\t%10s,\t%10s,\t%10s\n", "Date", "Date_t", "temp [C]", "SV [C]", "Output [%]");
@@ -997,12 +1010,14 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
     }else{
         LogMsg("===================== Recording temperature Stopped.");
         ui->pushButton_RecordTemp->setStyleSheet("");
+        clock->stop();
     }
 
     plot->graph(1)->data()->clear();
 
     if( tempRecordOnOff){
-
+        clock->setSingleShot(false);
+        clock->start(100);
         const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000;
         askSetPoint();
         int i = 0;
@@ -1111,6 +1126,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
 
     }
 
+    clock->stop();
 }
 
 void MainWindow::on_pushButton_ReadRH_clicked()

@@ -29,6 +29,8 @@ private slots:
     void waitForMSec(int msec);
     void panalOnOff(bool IO);
 
+    void showTime();
+
     void read(QModbusDataUnit::RegisterType type, quint16 adress, int size);
     void readReady();
     void request(QModbusPdu::FunctionCode code, QByteArray cmd); // no PDU reply
@@ -93,6 +95,8 @@ private:
     double pid_P, pid_I, pid_D;
 
     QTimer * timer;
+    QTimer * clock;
+    QTime elapse;
 };
 
 #endif // MAINWINDOW_H
