@@ -328,7 +328,7 @@ void MainWindow::readReady()
             QString str = tr("MV upper limit : %1 \%").arg(QString::number(MVupper));
             ui->doubleSpinBox_MVupper->setValue(MVupper);
             LogMsg(str);
-            plot->yAxis2->setRangeUpper(MVupper*1.2);
+            plot->yAxis2->setRangeUpper(MVupper + 2);
             plot->replot();
         }else if(respondType == E5CC_Address::MVlower){
             MVlower = QString::number(unit.value(1), 10).toDouble() * tempDecimal;
@@ -626,6 +626,7 @@ void MainWindow::on_pushButton_Control_clicked()
         QMessageBox box;
         QString boxMsg;
         if( mode == 1){
+            LogMsg("======== Stable Mode ==========");
             boxMsg.sprintf("======== Stable Mode ========== \n"
                            "Estimated transition time : %6.1f min. \n"
                            "Estimated gradience       : %6.1f min/C \n"
@@ -634,12 +635,14 @@ void MainWindow::on_pushButton_Control_clicked()
                            estSlope,
                            estTotalTime, estTotalTime/60.);
         }else if(mode == 2){
+            LogMsg("======== Fixed Time Mode ==========");
             boxMsg.sprintf("======== Fixed Time Mode ========== \n"
                            "Estimated gradience  : %6.1f min/C \n"
                            "Estimated total time : %6.1f min = %6.1f hr",
                            estSlope,
                            estTotalTime, estTotalTime/60.);
         }else if(mode == 3){
+            LogMsg("======== Fixed Rate Mode ==========");
             boxMsg.sprintf("======== Fixed Rate Mode ========== \n"
                            "Set-temp Gradience  : %6.1f min/C \n"
                            "Total time          : %6.1f min = %6.1f hr",
@@ -659,6 +662,7 @@ void MainWindow::on_pushButton_Control_clicked()
             panalOnOff(true);
             ui->pushButton_OpenFile->setEnabled(true);
             ui->pushButton_RecordTemp->setEnabled(true);
+            on_comboBox_Mode_currentIndexChanged(ui->comboBox_Mode->currentIndex());
             LogMsg("=============== Slow Temperature control cancelled.======");
             return;
         }
@@ -1123,15 +1127,15 @@ void MainWindow::on_pushButton_OpenFile_clicked()
         plotdata.value = pv.toDouble();
         pvData.push_back(plotdata);
 
-        if( list.size() < 5){
+        if( list.size() <= 5){
             haveSVMVData = true;
             QString sv = list[3];
             QString mv = list[4];
             plotdata.value = sv.toDouble();
             svData.push_back(plotdata);
 
-            plotdata.value = sv.toDouble();
-            svData.push_back(plotdata);
+            plotdata.value = mv.toDouble();
+            mvData.push_back(plotdata);
         }
     }
 
@@ -1148,13 +1152,17 @@ void MainWindow::on_pushButton_OpenFile_clicked()
     }
 
     plot->yAxis->rescale();
+    plot->yAxis2->rescale();
     plot->xAxis->rescale();
 
     double ymin = plot->yAxis->range().lower - 2;
     double ymax = plot->yAxis->range().upper + 2;
-
     plot->yAxis->setRangeLower(ymin);
     plot->yAxis->setRangeUpper(ymax);
+
+    ymax = plot->yAxis2->range().upper + 2;
+    plot->yAxis2->setRangeLower(0);
+    plot->yAxis2->setRangeUpper(ymax);
 
     plot->replot();
 
@@ -1235,7 +1243,7 @@ void MainWindow::on_doubleSpinBox_MVupper_valueChanged(double arg1)
     QByteArray value = QByteArray::fromHex(cmd.toStdString().c_str());
     request(QModbusPdu::WriteMultipleRegisters, value);
 
-    plot->yAxis2->setRangeLower(MVupper*1.2);
+    plot->yAxis2->setRangeLower(MVupper + 2);
     plot->replot();
 }
 
