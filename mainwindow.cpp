@@ -30,6 +30,8 @@ MainWindow::MainWindow(QWidget *parent) :
     spinBoxEnable = false;
     muteLog = false;
     tempDecimal = 0.1; // for 0.1
+    timer = new QTimer(this);
+    timer->setSingleShot(true);
 
     //Check Temp Directory, is not exist, create
     QDir myDir;
@@ -167,6 +169,7 @@ MainWindow::~MainWindow()
 {
     if (omron) omron->disconnectDevice();
 
+    delete timer;
     delete plot;
     delete omron;
     delete ui;
@@ -629,6 +632,7 @@ void MainWindow::on_pushButton_Control_clicked()
         double estSlope = (estTransitionTime + tempStableTime/60/1000) / tempStepSize ;
         double estTotalTime = (estTransitionTime + tempStableTime/60/1000) * estNumberTransition;
         if( mode == 3 ) {
+            tempStableTime = tempStableTime * 0.1;
             estSlope = ui->spinBox_TempStableTime->value(); // min/C
             estTotalTime = estSlope * qAbs(temperature-targetValue);
         }
@@ -712,7 +716,7 @@ void MainWindow::on_pushButton_Control_clicked()
             lineout = "### Set-temp change time    : " + QString::number(tempStableTime) + " min.\n";
             stream << lineout;
         }else if(mode == 3){
-            lineout = "### Set-temp change rate    : " + QString::number(tempStableTime) + " min/C.\n";
+            lineout = "### Set-temp change rate    : " + QString::number(tempStableTime) + " min/0.1C.\n";
             stream << lineout;
         }
         lineout.sprintf("###%11s,\t%12s,\t%10s,\t%10s,\t%10s\n", "Date", "Date_t", "temp [C]", "SV [C]", "Output [%]");
@@ -764,7 +768,7 @@ void MainWindow::on_pushButton_Control_clicked()
             muteLog = ui->checkBox_MuteLogMsg->isChecked();
             QDateTime smallStartTime = QDateTime::currentDateTime();
             do{
-                int modBusWaitTime = 0;
+                timer->start(tempGetTime);
                 qDebug()  << "temp control. do-loop 1 = " << tempControlOnOff;
                 if(!tempControlOnOff) break;
 
@@ -773,7 +777,6 @@ void MainWindow::on_pushButton_Control_clicked()
                 while(!modbusReady) {
                     i++;
                     waitForMSec(300);
-                    modBusWaitTime += 300;
                     if( i > 10 ){
                         modbusReady = true;
                     }
@@ -783,7 +786,6 @@ void MainWindow::on_pushButton_Control_clicked()
                 while(!modbusReady) {
                     i++;
                     waitForMSec(300);
-                    modBusWaitTime += 300;
                     if( i > 10 ){
                         modbusReady = true;
                     }
@@ -826,7 +828,9 @@ void MainWindow::on_pushButton_Control_clicked()
                 stream << lineout;
                 stream.flush();
 
-                waitForMSec(tempGetTime - modBusWaitTime);
+                while(timer->remainingTime() != -1 ){
+                    waitForMSec(10);
+                }
 
                 if( mode == 1){ //========== for stable mode
                     if( qAbs(temperature - smallShift) <= tempTorr ){
@@ -998,6 +1002,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
     plot->graph(1)->data()->clear();
 
     if( tempRecordOnOff){
+
         const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000;
         askSetPoint();
         int i = 0;
@@ -1033,14 +1038,14 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         mvData.clear();
         //only measure temperature
         muteLog = ui->checkBox_MuteLogMsg->isChecked();
+        timer->start();
         while(tempRecordOnOff){
-            int modBusWaitTime = 0;
+            timer->start(tempGetTime);
             askTemperature();
             int i = 0;
             while(!modbusReady) {
                 i++;
                 waitForMSec(300);
-                modBusWaitTime += 300;
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -1050,7 +1055,6 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             while(!modbusReady) {
                 i++;
                 waitForMSec(300);
-                modBusWaitTime += 300;
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -1096,8 +1100,9 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             stream << lineout;
             stream.flush();
 
-            waitForMSec(tempGetTime - modBusWaitTime);
-
+            while(timer->remainingTime() != -1 ){
+                waitForMSec(10);
+            }
         };
         muteLog = false;
 

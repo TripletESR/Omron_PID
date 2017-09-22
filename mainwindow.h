@@ -92,6 +92,7 @@ private:
 
     double pid_P, pid_I, pid_D;
 
+    QTimer * timer;
 };
 
 #endif // MAINWINDOW_H
