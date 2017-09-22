@@ -35,7 +35,7 @@ MainWindow::MainWindow(QWidget *parent) :
     clock = new QTimer(this);
     clock->stop();
     connect(clock, SIGNAL(timeout()), this, SLOT(showTime()));
-    elapse.setHMS(0,0,0,0);
+    totalElapse.setHMS(0,0,0,0);
 
     //Check Temp Directory, is not exist, create
     QDir myDir;
@@ -183,15 +183,20 @@ MainWindow::~MainWindow()
 }
 
 
-void MainWindow::LogMsg(QString str)
+void MainWindow::LogMsg(QString str, bool newLine)
 {
     if( muteLog ) return;
-    msgCount ++;
-    QString dateStr = QDateTime::currentDateTime().toString("HH:mm:ss ");
-    QString countStr;
-    countStr.sprintf("[%04d]: ", msgCount);
-    str.insert(0, countStr).insert(0, dateStr);
-    ui->textEdit_Log->append(str);
+    if( newLine == false ){
+        ui->textEdit_Log->moveCursor(QTextCursor::End);
+        ui->textEdit_Log->insertPlainText(str);
+    }else{
+        msgCount ++;
+        QString dateStr = QDateTime::currentDateTime().toString("HH:mm:ss ");
+        QString countStr;
+        countStr.sprintf("[%05d]: ", msgCount);
+        str.insert(0, countStr).insert(0, dateStr);
+        ui->textEdit_Log->append(str);
+    }
     int max = ui->textEdit_Log->verticalScrollBar()->maximum();
     ui->textEdit_Log->verticalScrollBar()->setValue(max);
 }
@@ -258,9 +263,10 @@ void MainWindow::panalOnOff(bool IO)
 
 void MainWindow::showTime()
 {
-    elapse = elapse.addMSecs(100);
-    ui->lineEdit_clock->setText(elapse.toString("HH:mm:ss:zzz"));
-    qDebug() << "==========" << elapse.msec();
+    QTime t(0,0,0,0);
+    t = t.addMSecs(totalElapse.elapsed());
+    ui->lineEdit_clock->setText(t.toString("HH:mm:ss:zzz"));
+    //qDebug() << "==========" << t.msec();
 }
 
 void MainWindow::on_pushButton_AskStatus_clicked()
@@ -613,6 +619,8 @@ void MainWindow::on_pushButton_Control_clicked()
         ui->pushButton_Control->setStyleSheet("");
         on_comboBox_Mode_currentIndexChanged(ui->comboBox_Mode->currentIndex());
         qDebug()  << "temp control. = " << tempControlOnOff;
+        clock->stop();
+        totalElapse.setHMS(0,0,0,0);
         return;
     }
 
@@ -741,7 +749,12 @@ void MainWindow::on_pushButton_Control_clicked()
         mvData.clear();
         double old_smallShift = temperature;
         double smallShift = temperature;
+        clock->setSingleShot(false);
+        clock->start(50);
+        totalElapse.start();
+        QTime fixedTime;
         while(tempControlOnOff){
+            fixedTime.start();
             //----------------Set SV
             if( mode == 1 || mode == 2 ){
                 if(direction * (targetValue - temperature) >= tempStepSize){
@@ -762,11 +775,8 @@ void MainWindow::on_pushButton_Control_clicked()
                 }
             }
 
-            QDateTime currentTime = QDateTime::currentDateTime();
-            double elapsed = currentTime.toTime_t() - startTime.toTime_t(); // sec
-            elapsed = elapsed / 60. ; // min
             ui->lineEdit_CurrentSV->setText(QString::number(smallShift) + " C");
-            LogMsg("==== Set-temp : " + QString::number(smallShift) + " C. Elapse Time : " + QString::number(elapsed) + " mins.");
+            LogMsg("==== Set-temp : " + QString::number(smallShift) + " C. Elapse Time : " + QString::number(totalElapse.elapsed()/1000./60.) + " mins.");
 
             double sp_input = smallShift / tempDecimal;
             int sp_2 = (qint16) (sp_input + 0.5);
@@ -779,7 +789,6 @@ void MainWindow::on_pushButton_Control_clicked()
 
             int count = 0;
             muteLog = ui->checkBox_MuteLogMsg->isChecked();
-            QDateTime smallStartTime = QDateTime::currentDateTime();
             do{
                 timer->start(tempGetTime);
                 qDebug()  << "temp control. do-loop 1 = " << tempControlOnOff;
@@ -845,6 +854,10 @@ void MainWindow::on_pushButton_Control_clicked()
                     waitForMSec(10);
                 }
 
+                muteLog=false;
+                LogMsg(" - " + QString::number(fixedTime.elapsed()/1000.), false);
+                muteLog = ui->checkBox_MuteLogMsg->isChecked();
+
                 if( mode == 1){ //========== for stable mode
                     if( qAbs(temperature - smallShift) <= tempTorr ){
                         count += tempGetTime;
@@ -857,17 +870,13 @@ void MainWindow::on_pushButton_Control_clicked()
                         count = 0;
                     }
                 }else if(mode == 2){
-                    QDateTime currentTime = QDateTime::currentDateTime();
-                    int esplase = currentTime.toTime_t() - smallStartTime.toTime_t();
-                    if (esplase * 1000. >= tempStableTime){
-                        LogMsg("time for next step. fixed time = " + QString::number(tempStableTime/60./1000) + " mins.");
+                    if (fixedTime.elapsed() >= tempStableTime - 500){
+                        LogMsg("time for next step. fixed time = " + QString::number(fixedTime.elapsed()/60./1000.) + " mins.");
                         count = tempStableTime + 10; // just to make the count > tempStableTime
                     }
                 }else if(mode == 3){
-                    QDateTime currentTime = QDateTime::currentDateTime();
-                    int esplase = currentTime.toTime_t() - smallStartTime.toTime_t();
-                    if (esplase >= estSlope *60 * 0.1){
-                        LogMsg("time for next step. Fixed rate = " + QString::number(estSlope * 0.1) + " min/0.1C.");
+                    if( fixedTime.elapsed() >= estSlope*60*1000*0.1 - 500){
+                        LogMsg("time for next step. Fixed rate = " + QString::number(fixedTime.elapsed()/60./1000.) + " min/0.1C.");
                         count = tempStableTime + 10; // just to make the count > tempStableTime
                     }
                 }
@@ -887,10 +896,7 @@ void MainWindow::on_pushButton_Control_clicked()
             }
         }
 
-        //statistics
-        QDateTime endTime = QDateTime::currentDateTime();
-        int totalTime = endTime.toTime_t() - startTime.toTime_t(); // sec
-        totalTime = totalTime/60.; // min
+        double totalTime = totalElapse.elapsed() /1000./60.; // min
         LogMsg("Total time : " + QString::number(totalTime) + " mins = " + QString::number(totalTime/60.) + " hours.");
         double tempChanged = qAbs(iniTemp - temperature);
         LogMsg("Average gradience : " + QString::number(totalTime/tempChanged) + " min/C." );
@@ -1011,13 +1017,15 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         LogMsg("===================== Recording temperature Stopped.");
         ui->pushButton_RecordTemp->setStyleSheet("");
         clock->stop();
+        totalElapse.setHMS(0,0,0,0);
     }
 
     plot->graph(1)->data()->clear();
 
     if( tempRecordOnOff){
         clock->setSingleShot(false);
-        clock->start(100);
+        clock->start(50);
+        totalElapse.start();
         const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000;
         askSetPoint();
         int i = 0;

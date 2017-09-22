@@ -21,7 +21,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    void LogMsg(QString str);
+    void LogMsg(QString str, bool newLine = true);
     void findSeriesPortDevices();
 
 private slots:
@@ -96,7 +96,7 @@ private:
 
     QTimer * timer;
     QTimer * clock;
-    QTime elapse;
+    QTime totalElapse;
 };
 
 #endif // MAINWINDOW_H
