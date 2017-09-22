@@ -616,6 +616,11 @@ void MainWindow::on_pushButton_Control_clicked()
 
         const int direction = (temperature > targetValue ) ? (-1) : 1;
         LogMsg("Temperature step            : " + QString::number(direction * tempStepSize) + " C.");
+        if(direction == 1){
+            plot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
+        }else{
+            plot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignRight|Qt::AlignTop);
+        }
 
         //estimate total time
         double estTransitionTime = 5; //min
@@ -682,7 +687,7 @@ void MainWindow::on_pushButton_Control_clicked()
 
         //ShowTime(startTime); // need to be another class, run at other timeline,use signal and slot to update.
 
-        outfile.open(QIODevice::WriteOnly);
+        outfile.open(QIODevice::WriteOnly| QIODevice::Text);
         QTextStream stream(&outfile);
         QString lineout;
 
@@ -819,7 +824,7 @@ void MainWindow::on_pushButton_Control_clicked()
                                 smallShift,
                                 MV);
                 stream << lineout;
-                outfile.flush(); // write to file immedinately, but seem not working...
+                stream.flush();
 
                 waitForMSec(tempGetTime - modBusWaitTime);
 
@@ -859,7 +864,7 @@ void MainWindow::on_pushButton_Control_clicked()
                     lineout = "###=========== Time Up  =============";
                 }
                 stream << lineout;
-                outfile.flush();
+                stream.flush();
                 LogMsg(lineout);
                 break;
             }
@@ -936,7 +941,7 @@ void MainWindow::on_pushButton_Control_clicked()
                             smallShift,
                             MV);
             stream << lineout;
-            outfile.flush(); // write to file immedinately, but seem not working...
+            stream.flush(); // write to file
 
             waitForMSec(tempGetTime -  modBusWaitTime);
 
@@ -1012,7 +1017,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         LogMsg("data save to : " + filePath);
         QFile outfile(filePath);
 
-        outfile.open(QIODevice::WriteOnly);
+        outfile.open(QIODevice::WriteOnly| QIODevice::Text);
         QTextStream stream(&outfile);
         QString lineout;
 
@@ -1056,8 +1061,8 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             plotdata.key = date.toTime_t();
 
             plotdata.value = temperature;
+            //plotdata.value = 100;
             pvData.push_back(plotdata);
-            //plotdata.value = qrand();
 
             plotdata.value = SV;
             svData.push_back(plotdata);
@@ -1089,7 +1094,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
                             SV,
                             MV);
             stream << lineout;
-            outfile.flush(); // write to file immedinately, but seem not working...
+            stream.flush();
 
             waitForMSec(tempGetTime - modBusWaitTime);
 
@@ -1130,8 +1135,10 @@ void MainWindow::on_pushButton_OpenFile_clicked()
     mvData.clear();
     bool haveSVMVData = false;
     while(stream.readLineInto(&line)){
-        if( line.left(3) == "###") continue;
-
+        if( line.left(3) == "###") {
+            LogMsg(line);
+            continue;
+        }
         QStringList list = line.split(",");
         if(list.size() < 3) continue;
         QString time = list[1];
