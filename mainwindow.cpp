@@ -649,8 +649,8 @@ void MainWindow::on_pushButton_Control_clicked()
         }else if(mode == 3){
             LogMsg("======== Fixed Rate Mode ==========");
             boxMsg.sprintf("======== Fixed Rate Mode ========== \n"
-                           "Set-temp Gradience  : %6.1f min/C \n"
-                           "Total time          : %6.1f min = %6.1f hr",
+                           "Set-temp Gradience   : %6.1f min/C \n"
+                           "Estimated total time : %6.1f min = %6.1f hr",
                            estSlope,
                            estTotalTime, estTotalTime/60.);
         }
@@ -718,20 +718,26 @@ void MainWindow::on_pushButton_Control_clicked()
         svData.clear();
         mvData.clear();
         double old_smallShift = temperature;
-        double smallShift = targetValue;
+        double smallShift = temperature;
         while(tempControlOnOff){
             //----------------Set SV
-            if(direction * (targetValue - temperature) >= tempStepSize){
-                // when direction is +1, when temperature smaller than tempStepSize, incrase smallshift by a step size.
-                smallShift = temperature + direction * tempStepSize  ;
-            }else{
-                //else, smallshift = target value.
-                smallShift = targetValue;
+            if( mode == 1 || mode == 2 ){
+                if(direction * (targetValue - temperature) >= tempStepSize){
+                    // when direction is +1, when temperature smaller than tempStepSize, incrase smallshift by a step size.
+                    smallShift = temperature + direction * tempStepSize  ;
+                }else{
+                    //else, smallshift = target value.
+                    smallShift = targetValue;
+                }
             }
 
             if( mode == 3){
-                smallShift = old_smallShift + direction * tempStepSize  ;
-                old_smallShift = smallShift;
+                if(direction * (targetValue - smallShift) >= tempStepSize){
+                    smallShift = old_smallShift + direction * tempStepSize  ;
+                    old_smallShift = smallShift;
+                }else{
+                    smallShift = targetValue;
+                }
             }
 
             QDateTime currentTime = QDateTime::currentDateTime();
@@ -750,7 +756,7 @@ void MainWindow::on_pushButton_Control_clicked()
             request(QModbusPdu::WriteMultipleRegisters, value);
 
             int count = 0;
-            muteLog = true;
+            muteLog = ui->checkBox_MuteLogMsg->isChecked();
             QDateTime smallStartTime = QDateTime::currentDateTime();
             do{
                 int modBusWaitTime = 0;
@@ -831,17 +837,18 @@ void MainWindow::on_pushButton_Control_clicked()
                 }else if(mode == 2){
                     QDateTime currentTime = QDateTime::currentDateTime();
                     int esplase = currentTime.toTime_t() - smallStartTime.toTime_t();
-                    if (esplase * 1000. > tempStableTime){
+                    if (esplase * 1000. >= tempStableTime){
+                        LogMsg("time for next step. fixed time = " + QString::number(tempStableTime/60./1000) + " mins.");
                         count = tempStableTime + 10; // just to make the count > tempStableTime
                     }
                 }else if(mode == 3){
                     QDateTime currentTime = QDateTime::currentDateTime();
                     int esplase = currentTime.toTime_t() - smallStartTime.toTime_t();
-                    if (esplase * 1000. > estSlope *60 * 1000 * 0.1){
+                    if (esplase >= estSlope *60 * 0.1){
+                        LogMsg("time for next step. Fixed rate = " + QString::number(estSlope * 0.1) + " min/0.1C.");
                         count = tempStableTime + 10; // just to make the count > tempStableTime
                     }
                 }
-
             }while( count < tempStableTime  && tempControlOnOff ); // if temperature stable for 10 min
             muteLog = false;
 
@@ -939,9 +946,9 @@ void MainWindow::on_pushButton_Control_clicked()
         stream << "###============ end of file ==============";
         outfile.close();
 
-        panalOnOff(true);
-        ui->pushButton_Control->setStyleSheet("");
-        tempControlOnOff = false;
+        //panalOnOff(true);
+        //ui->pushButton_Control->setStyleSheet("");
+        //tempControlOnOff = false;
     }
 
 }
@@ -1020,7 +1027,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         svData.clear();
         mvData.clear();
         //only measure temperature
-        muteLog = true;
+        muteLog = ui->checkBox_MuteLogMsg->isChecked();
         while(tempRecordOnOff){
             int modBusWaitTime = 0;
             askTemperature();
