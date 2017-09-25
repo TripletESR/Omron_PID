@@ -36,8 +36,8 @@ MainWindow::MainWindow(QWidget *parent) :
     spinBoxEnable = false;
     muteLog = false;
     tempDecimal = 0.1; // for 0.1
-    getTempTimer = new QTimer(this);
-    getTempTimer->setSingleShot(true);
+
+    //======= clock
     clock = new QTimer(this);
     clock->stop();
     connect(clock, SIGNAL(timeout()), this, SLOT(showTime()));
@@ -193,7 +193,6 @@ MainWindow::~MainWindow()
     clock->stop();
 
     delete clock;
-    delete getTempTimer;
     delete plot;
     delete omron;
     delete ui;
@@ -811,7 +810,10 @@ void MainWindow::on_pushButton_Control_clicked()
         clock->setSingleShot(false);
         clock->start(timing::clockUpdate);
         totalElapse.start(); // used for clock
-        QTime waitTimeCounter;
+        QTimer getTempTimer;
+        getTempTimer.setSingleShot(true);
+        QTimer waitTimer;
+        waitTimer.setSingleShot(true);
 
         //########################### mode 4 extra code, go to targetValue_2
         //----- set SV
@@ -823,9 +825,9 @@ void MainWindow::on_pushButton_Control_clicked()
         mvData.clear();
         muteLog = ui->checkBox_MuteLogMsg->isChecked();
         bool targetValue_2_notReached = true;
-        bool timerNotStarted = true;
+        bool waitTimerStarted = false;
         while(tempControlOnOff && mode == 4 && targetValue_2_notReached){
-            getTempTimer->start(tempGetTime);
+            getTempTimer.start(tempGetTime);
             askTemperature();
             int i = 0;
             while(!modbusReady) {
@@ -857,10 +859,10 @@ void MainWindow::on_pushButton_Control_clicked()
             stream << lineout;
             stream.flush();
 
-            while(getTempTimer->remainingTime() != -1 ){
+            while(getTempTimer.remainingTime() > 0 ){
                 waitForMSec(timing::getTempTimer);
 
-                if(waitTimeCounter.elapsed() >= 1000*60*10 && timerNotStarted == false){
+                if(waitTimer.remainingTime() <= 0 && waitTimerStarted == true){
                     targetValue_2_notReached = false;
                     muteLog = false;
                     LogMsg("Target Set-temp stable. Start fixed rate. Elapse time : " + QString::number(totalElapse.elapsed()/1000./60) + " mins.");
@@ -871,9 +873,9 @@ void MainWindow::on_pushButton_Control_clicked()
                 }
             }
 
-            if(temperature == targetValue_2 && timerNotStarted == true){
-                waitTimeCounter.start();
-                timerNotStarted = false;
+            if(temperature == targetValue_2 && waitTimerStarted == false){
+                waitTimer.start(1000*60*10);
+                waitTimerStarted = true;
                 muteLog = false;
                 LogMsg("Target Set-temp reached : " + QString::number(targetValue_2) + " C. Elapse time : " + QString::number(totalElapse.elapsed()/1000./60) + " mins.");
                 LogMsg("wait for 10 mins.");
@@ -902,8 +904,12 @@ void MainWindow::on_pushButton_Control_clicked()
         LogMsg("Temperature step            : " + QString::number(direction * tempStepSize) + " C.");
 
         while(tempControlOnOff){
-            waitTimeCounter.start();
-            int referenceTime = totalElapse.elapsed();
+            if( mode >= 2 ) {
+                waitTimer.start(tempWaitTime);
+                waitTimerStarted = true;
+            }else{
+                waitTimerStarted = false;
+            }
             //----------------Set SV
             if( mode == 1 || mode == 2 ){
                 if(direction * (targetValue - temperature) >= tempStepSize){
@@ -928,10 +934,11 @@ void MainWindow::on_pushButton_Control_clicked()
 
             setSV(smallShift);
 
-            int count = 0;
+            bool nextSV = false;
+
             muteLog = ui->checkBox_MuteLogMsg->isChecked();
             do{
-                getTempTimer->start(tempGetTime);
+                getTempTimer.start(tempGetTime);
                 qDebug()  << "temp control. do-loop 1 = " << tempControlOnOff;
                 if(!tempControlOnOff) break;
 
@@ -966,13 +973,13 @@ void MainWindow::on_pushButton_Control_clicked()
                 stream << lineout;
                 stream.flush();
 
-                while(getTempTimer->remainingTime() != -1 ){
+                while(getTempTimer.remainingTime() > 0 ){
                     waitForMSec(timing::getTempTimer);
-                    double timePassed = (totalElapse.elapsed() - referenceTime)/1000./60.; //min
-                    if((mode == 2 || mode == 3 || mode == 4) && timePassed >= tempWaitTime ){
-                        LogMsg("Compasating time leak. Time for next step. Fixed rate = " + QString::number(waitTimeCounter.elapsed()/60./1000.) + " min/0.1C.");
-                        count = tempWaitTime + 10; // just to make the count > tempStableTime
+                    if( waitTimer.remainingTime() <= 0 && waitTimerStarted == true){
+                        LogMsg("Time for next step.  ");
+                        nextSV = true;
                     }
+
                 }
                 muteLog=false;
                 LogMsg(" .", false);
@@ -980,28 +987,23 @@ void MainWindow::on_pushButton_Control_clicked()
                 muteLog = ui->checkBox_MuteLogMsg->isChecked();
 
                 if( mode == 1){ //========== for stable mode
-                    if( qAbs(temperature - smallShift) <= tempTorr ){
-                        count += tempGetTime;
-                        LogMsg( " temperature stable for : " +  QString::number(count/1000.) + " sec. |"
-                                +QString::number(smallShift) + " - " + QString::number(temperature) + "| < "  + QString::number(tempTorr) + " C");
-                    }else{
-                        if(count > 0){
-                            LogMsg( " temperature over-shoot. reset stable counter.");
+                    if( qAbs(temperature - smallShift) <= tempTorr){
+                        if( waitTimerStarted == false){
+                            waitTimer.start(tempWaitTime);
+                            waitTimerStarted = true;
                         }
-                        count = 0;
+                    }else{
+                        waitTimer.stop();
+                        waitTimerStarted = false;
                     }
-                }else if(mode == 2){
-                    if (waitTimeCounter.elapsed() >= tempWaitTime - 500){
-                        LogMsg("time for next step. fixed time = " + QString::number(waitTimeCounter.elapsed()/60./1000.) + " mins.");
-                        count = tempWaitTime + 10; // just to make the count > tempStableTime
-                    }
-                }else if(mode == 3 || mode == 4){
-                    if( waitTimeCounter.elapsed() >= tempWaitTime * 0.1 - 500){
-                        LogMsg("time for next step. Fixed rate = " + QString::number(waitTimeCounter.elapsed()/60./1000.) + " min/0.1C.");
-                        count = tempWaitTime + 10; // just to make the count > tempStableTime
+                    if( waitTimerStarted == true){
+                        double stableTime = (tempWaitTime - waitTimer.remainingTime())/1000.;
+                        LogMsg( " temperature stable for : " +  QString::number(stableTime) + " sec. |"
+                         + QString::number(smallShift) + " - " + QString::number(temperature) + "| < "  + QString::number(tempTorr) + " C");
                     }
                 }
-            }while( count < tempWaitTime  && tempControlOnOff ); // if temperature stable for 10 min
+
+            }while( !nextSV  && tempControlOnOff );
             muteLog = false;
 
             if (smallShift == targetValue){
@@ -1026,7 +1028,7 @@ void MainWindow::on_pushButton_Control_clicked()
         //only measure temperature
         muteLog = true;
         while(tempControlOnOff){
-            getTempTimer->start(tempGetTime);
+            getTempTimer.start(tempGetTime);
             qDebug()  << "temp control. do-loop 2 = " << tempControlOnOff;
             askTemperature();
             int i = 0;
@@ -1059,7 +1061,7 @@ void MainWindow::on_pushButton_Control_clicked()
             stream << lineout;
             stream.flush(); // write to file
 
-            while(getTempTimer->remainingTime() != -1 ){
+            while(getTempTimer.remainingTime() != -1 ){
                 waitForMSec(timing::getTempTimer);
             }
 
@@ -1115,7 +1117,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
 
     if( tempRecordOnOff){
         clock->setSingleShot(false);
-        clock->start(50);
+        clock->start(timing::clockUpdate);
         totalElapse.start();
         const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000;
         askSetPoint();
@@ -1152,8 +1154,10 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         mvData.clear();
         //only measure temperature
         muteLog = ui->checkBox_MuteLogMsg->isChecked();
+        QTimer getTempTimer;
+        getTempTimer.setSingleShot(true);
         while(tempRecordOnOff){
-            getTempTimer->start(tempGetTime);
+            getTempTimer.start(tempGetTime);
             askTemperature();
             int i = 0;
             while(!modbusReady) {
@@ -1185,7 +1189,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             stream << lineout;
             stream.flush();
 
-            while(getTempTimer->remainingTime() != -1 ){
+            while(getTempTimer.remainingTime() != -1 ){
                 waitForMSec(timing::getTempTimer);
             }
         };
