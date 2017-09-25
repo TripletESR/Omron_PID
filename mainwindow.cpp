@@ -797,7 +797,7 @@ void MainWindow::on_pushButton_Control_clicked()
             stream << lineout;
             lineout = "### Set-temp of fixed rate  : " + QString::number(targetValue) + " C.\n";
             stream << lineout;
-            lineout = "### Set-temp change rate    : " + QString::number(tempStableTime) + " min/C.\n";
+            lineout = "### Set-temp change rate    : " + QString::number(tempStableTime/60./1000.) + " min/C.\n";
             stream << lineout;
         }
         lineout.sprintf("###%11s,\t%12s,\t%10s,\t%10s,\t%10s\n", "Date", "Date_t", "temp [C]", "SV [C]", "Output [%]");
@@ -1158,8 +1158,8 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
                             date.toString("MM-dd HH:mm:ss").toStdString().c_str(),
                             date.toTime_t(),
                             temperature,
-                            SV,
-                            MV);
+                            (double) SV,
+                            (double) MV);
             stream << lineout;
             stream.flush();
 
@@ -1431,7 +1431,7 @@ void MainWindow::on_actionOpen_File_triggered()
     plot->replot();
 }
 
-void MainWindow::fillDataAndPlot(QDateTime date, double PV, double SV, double MV)
+void MainWindow::fillDataAndPlot(const QDateTime date, const double PV, const double SV, const double MV)
 {
     QCPGraphData plotdata;
     plotdata.key = date.toTime_t();

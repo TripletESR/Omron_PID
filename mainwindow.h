@@ -68,7 +68,7 @@ private slots:
 
     void on_actionOpen_File_triggered();
 
-    void fillDataAndPlot(QDateTime date, double PV, double SV, double MV);
+    void fillDataAndPlot(const QDateTime date, const double PV, const double SV, const double MV);
 
 private:
     Ui::MainWindow *ui;
