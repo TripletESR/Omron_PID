@@ -18,9 +18,10 @@ enum E5CC_Address{
     PID_D=0x0A04
 };
 
-enum waitTime{
+enum timing{
     modbus = 100,
-    getTempTimer = 10
+    getTempTimer = 10,
+    clockUpdate = 50
 };
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -316,7 +317,7 @@ void MainWindow::on_pushButton_AskStatus_clicked()
     int i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -326,7 +327,7 @@ void MainWindow::on_pushButton_AskStatus_clicked()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -336,7 +337,7 @@ void MainWindow::on_pushButton_AskStatus_clicked()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -472,7 +473,7 @@ void MainWindow::getSetting()
     int i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -482,7 +483,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -492,7 +493,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -504,7 +505,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -513,7 +514,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -526,7 +527,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -536,7 +537,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -546,7 +547,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -673,15 +674,18 @@ void MainWindow::on_pushButton_Control_clicked()
 
         const double targetValue = ui->lineEdit_SV->text().toDouble();
         const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000; // msec
-        const int tempStableTime = ui->spinBox_TempStableTime->value() * 60 * 1000; // msec
+        int tempWaitTime = ui->spinBox_TempStableTime->value() * 60 * 1000; // msec
         const double tempTorr = ui->doubleSpinBox_TempTorr->value();
         const double tempStepSize = ui->doubleSpinBox_TempStepSize->value();
         const int mode = ui->comboBox_Mode->currentData().toInt();
         const double targetValue_2 = ui->lineEdit_SV2->text().toDouble();
+        if( mode == 4){
+            tempWaitTime = tempWaitTime * tempStepSize;
+        }
 
         if( mode == 4){
             LogMsg("First go to : " + QString::number(targetValue_2) + " C. normaly.");
-            LogMsg("Then go to : " + QString::number(targetValue) + " C. at fixed rate.");
+            LogMsg("Then go to  : " + QString::number(targetValue) + " C. at fixed rate.");
         }else{
             LogMsg("Target Temperature          : " + QString::number(targetValue) + " C.");
         }
@@ -689,13 +693,8 @@ void MainWindow::on_pushButton_Control_clicked()
         //============= estimate total time
         double estTransitionTime = 5; //min
         if( mode == 2 || mode == 3 || mode == 4) estTransitionTime = 0;
-        double estNumberTransition = qAbs(temperature-targetValue)/ tempStepSize;
-        double estSlope = (estTransitionTime + tempStableTime/60/1000) / tempStepSize ;
-        double estTotalTime = (estTransitionTime + tempStableTime/60/1000) * estNumberTransition;
-        if( mode == 3 ) {
-            estSlope = ui->spinBox_TempStableTime->value(); // min/C
-            estTotalTime = estSlope * qAbs(temperature-targetValue);
-        }
+        double estSlope = (estTransitionTime + tempWaitTime/60/1000) / tempStepSize ;
+        double estTotalTime = estSlope * qAbs(temperature-targetValue);
         if(mode == 4){
             estSlope = ui->spinBox_TempStableTime->value(); // min/C
             estTotalTime = estSlope * qAbs(targetValue_2-targetValue);
@@ -764,8 +763,6 @@ void MainWindow::on_pushButton_Control_clicked()
         LogMsg("data save to : " + filePath);
         QFile outfile(filePath);
 
-        //ShowTime(startTime); // need to be another class, run at other timeline,use signal and slot to update.
-
         outfile.open(QIODevice::WriteOnly| QIODevice::Text);
         QTextStream stream(&outfile);
         QString lineout;
@@ -782,25 +779,29 @@ void MainWindow::on_pushButton_Control_clicked()
             lineout = "### Control mode          :  Normal + Set-temp Fixed Rate. \n";
         }
         stream << lineout;
-        lineout = "### Target Temperature          : " + QString::number(targetValue) + " C.\n";
-        stream << lineout;
         if( mode == 1){
-            lineout = "### Temperature  stable time    : " + QString::number(tempStableTime) + " min.\n";
+            lineout = "### Target Temperature          : " + QString::number(targetValue) + " C.\n";
+            stream << lineout;
+            lineout = "### Temperature  stable time    : " + QString::number(tempWaitTime) + " min.\n";
             stream << lineout;
             lineout = "### Temperature tolerance       : " + QString::number(tempTorr) + " C.\n";
             stream << lineout;
         }else if(mode == 2){
-            lineout = "### Set-temp change time    : " + QString::number(tempStableTime) + " min.\n";
+            lineout = "### Target Temperature      : " + QString::number(targetValue) + " C.\n";
+            stream << lineout;
+            lineout = "### Set-temp change time    : " + QString::number(tempWaitTime) + " min.\n";
             stream << lineout;
         }else if(mode == 3){
-            lineout = "### Set-temp change rate    : " + QString::number(tempStableTime/60./1000.) + " min/C.\n";
+            lineout = "### Target Temperature      : " + QString::number(targetValue) + " C.\n";
+            stream << lineout;
+            lineout = "### Set-temp change rate    : " + QString::number(tempWaitTime/60./1000.) + " min/C.\n";
             stream << lineout;
         }else if(mode == 4){
             lineout = "### Set-temp of normal      : " + QString::number(targetValue_2) + " C.\n";
             stream << lineout;
             lineout = "### Set-temp of fixed rate  : " + QString::number(targetValue) + " C.\n";
             stream << lineout;
-            lineout = "### Set-temp change rate    : " + QString::number(tempStableTime/60./1000.) + " min/C.\n";
+            lineout = "### Set-temp change rate    : " + QString::number(tempWaitTime/60./1000.) + " min/C.\n";
             stream << lineout;
         }
         lineout.sprintf("###%11s,\t%12s,\t%10s,\t%10s,\t%10s\n", "Date", "Date_t", "temp [C]", "SV [C]", "Output [%]");
@@ -808,9 +809,9 @@ void MainWindow::on_pushButton_Control_clicked()
         stream.flush();
 
         clock->setSingleShot(false);
-        clock->start(50);
-        totalElapse.start();
-        QTime fixedTime;
+        clock->start(timing::clockUpdate);
+        totalElapse.start(); // used for clock
+        QTime waitTimeCounter;
 
         //########################### mode 4 extra code, go to targetValue_2
         //----- set SV
@@ -822,14 +823,14 @@ void MainWindow::on_pushButton_Control_clicked()
         mvData.clear();
         muteLog = ui->checkBox_MuteLogMsg->isChecked();
         bool targetValue_2_notReached = true;
-        bool fixedTimeNotStarted = true;
+        bool timerNotStarted = true;
         while(tempControlOnOff && mode == 4 && targetValue_2_notReached){
             getTempTimer->start(tempGetTime);
             askTemperature();
             int i = 0;
             while(!modbusReady) {
                 i++;
-                waitForMSec(waitTime::modbus);
+                waitForMSec(timing::modbus);
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -838,7 +839,7 @@ void MainWindow::on_pushButton_Control_clicked()
             i = 0;
             while(!modbusReady) {
                 i++;
-                waitForMSec(waitTime::modbus);
+                waitForMSec(timing::modbus);
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -857,12 +858,22 @@ void MainWindow::on_pushButton_Control_clicked()
             stream.flush();
 
             while(getTempTimer->remainingTime() != -1 ){
-                waitForMSec(waitTime::getTempTimer);
+                waitForMSec(timing::getTempTimer);
+
+                if(waitTimeCounter.elapsed() >= 1000*60*10 && timerNotStarted == false){
+                    targetValue_2_notReached = false;
+                    muteLog = false;
+                    LogMsg("Target Set-temp stable. Start fixed rate. Elapse time : " + QString::number(totalElapse.elapsed()/1000./60) + " mins.");
+                    muteLog = ui->checkBox_MuteLogMsg->isChecked();
+                    lineout.sprintf("### fixed-rate start.\n");
+                    stream << lineout;
+                    stream.flush();
+                }
             }
 
-            if(temperature == targetValue_2 && fixedTimeNotStarted == true){
-                fixedTime.start();
-                fixedTimeNotStarted = false;
+            if(temperature == targetValue_2 && timerNotStarted == true){
+                waitTimeCounter.start();
+                timerNotStarted = false;
                 muteLog = false;
                 LogMsg("Target Set-temp reached : " + QString::number(targetValue_2) + " C. Elapse time : " + QString::number(totalElapse.elapsed()/1000./60) + " mins.");
                 LogMsg("wait for 10 mins.");
@@ -872,15 +883,6 @@ void MainWindow::on_pushButton_Control_clicked()
                 stream.flush();
             }
 
-            if(fixedTime.elapsed() >= 1000*60*10 ){
-                targetValue_2_notReached = false;
-                muteLog = false;
-                LogMsg("Target Set-temp stable. Start fixed rate. Elapse time : " + QString::number(totalElapse.elapsed()/1000./60) + " mins.");
-                muteLog = ui->checkBox_MuteLogMsg->isChecked();
-                lineout.sprintf("### fixed-rate start.\n");
-                stream << lineout;
-                stream.flush();
-            }
         }
         muteLog = false;
 
@@ -889,7 +891,7 @@ void MainWindow::on_pushButton_Control_clicked()
         int i = 0;
         while(!modbusReady) {
             i++;
-            waitForMSec(waitTime::modbus);
+            waitForMSec(timing::modbus);
             if( i > 10 ){
                 modbusReady = true;
             }
@@ -900,7 +902,7 @@ void MainWindow::on_pushButton_Control_clicked()
         LogMsg("Temperature step            : " + QString::number(direction * tempStepSize) + " C.");
 
         while(tempControlOnOff){
-            fixedTime.start();
+            waitTimeCounter.start();
             int referenceTime = totalElapse.elapsed();
             //----------------Set SV
             if( mode == 1 || mode == 2 ){
@@ -937,7 +939,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 int i = 0;
                 while(!modbusReady) {
                     i++;
-                    waitForMSec(waitTime::modbus);
+                    waitForMSec(timing::modbus);
                     if( i > 10 ){
                         modbusReady = true;
                     }
@@ -946,7 +948,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 i = 0;
                 while(!modbusReady) {
                     i++;
-                    waitForMSec(waitTime::modbus);
+                    waitForMSec(timing::modbus);
                     if( i > 10 ){
                         modbusReady = true;
                     }
@@ -965,11 +967,11 @@ void MainWindow::on_pushButton_Control_clicked()
                 stream.flush();
 
                 while(getTempTimer->remainingTime() != -1 ){
-                    waitForMSec(waitTime::getTempTimer);
+                    waitForMSec(timing::getTempTimer);
                     double timePassed = (totalElapse.elapsed() - referenceTime)/1000./60.; //min
-                    if((mode == 3 || mode == 4) && timePassed >= tempStableTime ){
-                        LogMsg("Compasating time leak. Time for next step. Fixed rate = " + QString::number(fixedTime.elapsed()/60./1000.) + " min/0.1C.");
-                        count = tempStableTime + 10; // just to make the count > tempStableTime
+                    if((mode == 2 || mode == 3 || mode == 4) && timePassed >= tempWaitTime ){
+                        LogMsg("Compasating time leak. Time for next step. Fixed rate = " + QString::number(waitTimeCounter.elapsed()/60./1000.) + " min/0.1C.");
+                        count = tempWaitTime + 10; // just to make the count > tempStableTime
                     }
                 }
                 muteLog=false;
@@ -989,17 +991,17 @@ void MainWindow::on_pushButton_Control_clicked()
                         count = 0;
                     }
                 }else if(mode == 2){
-                    if (fixedTime.elapsed() >= tempStableTime - 500){
-                        LogMsg("time for next step. fixed time = " + QString::number(fixedTime.elapsed()/60./1000.) + " mins.");
-                        count = tempStableTime + 10; // just to make the count > tempStableTime
+                    if (waitTimeCounter.elapsed() >= tempWaitTime - 500){
+                        LogMsg("time for next step. fixed time = " + QString::number(waitTimeCounter.elapsed()/60./1000.) + " mins.");
+                        count = tempWaitTime + 10; // just to make the count > tempStableTime
                     }
                 }else if(mode == 3 || mode == 4){
-                    if( fixedTime.elapsed() >= tempStableTime * 0.1 - 500){
-                        LogMsg("time for next step. Fixed rate = " + QString::number(fixedTime.elapsed()/60./1000.) + " min/0.1C.");
-                        count = tempStableTime + 10; // just to make the count > tempStableTime
+                    if( waitTimeCounter.elapsed() >= tempWaitTime * 0.1 - 500){
+                        LogMsg("time for next step. Fixed rate = " + QString::number(waitTimeCounter.elapsed()/60./1000.) + " min/0.1C.");
+                        count = tempWaitTime + 10; // just to make the count > tempStableTime
                     }
                 }
-            }while( count < tempStableTime  && tempControlOnOff ); // if temperature stable for 10 min
+            }while( count < tempWaitTime  && tempControlOnOff ); // if temperature stable for 10 min
             muteLog = false;
 
             if (smallShift == targetValue){
@@ -1030,7 +1032,7 @@ void MainWindow::on_pushButton_Control_clicked()
             int i = 0;
             while(!modbusReady) {
                 i++;
-                waitForMSec(waitTime::modbus);
+                waitForMSec(timing::modbus);
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -1039,7 +1041,7 @@ void MainWindow::on_pushButton_Control_clicked()
             i = 0;
             while(!modbusReady) {
                 i++;
-                waitForMSec(waitTime::modbus);
+                waitForMSec(timing::modbus);
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -1058,7 +1060,7 @@ void MainWindow::on_pushButton_Control_clicked()
             stream.flush(); // write to file
 
             while(getTempTimer->remainingTime() != -1 ){
-                waitForMSec(waitTime::getTempTimer);
+                waitForMSec(timing::getTempTimer);
             }
 
         };
@@ -1120,7 +1122,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         int i = 0;
         while(!modbusReady) {
             i++;
-            waitForMSec(waitTime::modbus);
+            waitForMSec(timing::modbus);
             if( i > 10 ){
                 modbusReady = true;
             }
@@ -1156,7 +1158,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             int i = 0;
             while(!modbusReady) {
                 i++;
-                waitForMSec(waitTime::modbus);
+                waitForMSec(timing::modbus);
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -1165,7 +1167,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             i = 0;
             while(!modbusReady) {
                 i++;
-                waitForMSec(waitTime::modbus);
+                waitForMSec(timing::modbus);
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -1184,7 +1186,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             stream.flush();
 
             while(getTempTimer->remainingTime() != -1 ){
-                waitForMSec(waitTime::getTempTimer);
+                waitForMSec(timing::getTempTimer);
             }
         };
         muteLog = false;
@@ -1292,7 +1294,7 @@ void MainWindow::on_pushButton_GetPID_clicked()
     int i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -1302,7 +1304,7 @@ void MainWindow::on_pushButton_GetPID_clicked()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -1312,7 +1314,7 @@ void MainWindow::on_pushButton_GetPID_clicked()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(waitTime::modbus);
+        waitForMSec(timing::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
