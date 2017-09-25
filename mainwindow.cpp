@@ -793,7 +793,7 @@ void MainWindow::on_pushButton_Control_clicked()
             lineout = "### Set-temp change time    : " + QString::number(tempStableTime) + " min.\n";
             stream << lineout;
         }else if(mode == 3){
-            lineout = "### Set-temp change rate    : " + QString::number(tempStableTime) + " min/C.\n";
+            lineout = "### Set-temp change rate    : " + QString::number(tempStableTime/60./1000.) + " min/C.\n";
             stream << lineout;
         }else if(mode == 4){
             lineout = "### Set-temp of normal      : " + QString::number(targetValue_2) + " C.\n";
@@ -901,6 +901,7 @@ void MainWindow::on_pushButton_Control_clicked()
 
         while(tempControlOnOff){
             fixedTime.start();
+            int referenceTime = totalElapse.elapsed();
             //----------------Set SV
             if( mode == 1 || mode == 2 ){
                 if(direction * (targetValue - temperature) >= tempStepSize){
@@ -965,9 +966,14 @@ void MainWindow::on_pushButton_Control_clicked()
 
                 while(getTempTimer->remainingTime() != -1 ){
                     waitForMSec(waitTime::getTempTimer);
+                    double timePassed = (totalElapse.elapsed() - referenceTime)/1000./60.; //min
+                    if((mode == 3 || mode == 4) && timePassed >= tempStableTime ){
+                        LogMsg("Compasating time leak. Time for next step. Fixed rate = " + QString::number(fixedTime.elapsed()/60./1000.) + " min/0.1C.");
+                        count = tempStableTime + 10; // just to make the count > tempStableTime
+                    }
                 }
                 muteLog=false;
-                LogMsg(".", false);
+                LogMsg(" .", false);
                 //LogMsg(" - " + QString::number(fixedTime.elapsed()/1000.), false);
                 muteLog = ui->checkBox_MuteLogMsg->isChecked();
 
@@ -988,7 +994,7 @@ void MainWindow::on_pushButton_Control_clicked()
                         count = tempStableTime + 10; // just to make the count > tempStableTime
                     }
                 }else if(mode == 3 || mode == 4){
-                    if( fixedTime.elapsed() >= estSlope*60*1000*0.1 - 500){
+                    if( fixedTime.elapsed() >= tempStableTime * 0.1 - 500){
                         LogMsg("time for next step. Fixed rate = " + QString::number(fixedTime.elapsed()/60./1000.) + " min/0.1C.");
                         count = tempStableTime + 10; // just to make the count > tempStableTime
                     }
