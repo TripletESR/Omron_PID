@@ -21,7 +21,9 @@ enum E5CC_Address{
 enum timing{
     modbus = 100,
     getTempTimer = 10,
-    clockUpdate = 50
+    clockUpdate = 50,
+    timeUp = 1000*60*10,
+    timeOut = 700
 };
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -44,6 +46,10 @@ MainWindow::MainWindow(QWidget *parent) :
     totalElapse.setHMS(0,0,0,0);
     dayCounter = 0;
     checkDay = false;
+    waitTimer = new QTimer(this);
+    waitTimer->stop();
+    waitTimer->setSingleShot(false);
+    connect(waitTimer, SIGNAL(timeout()), this, SLOT(allowSetNextSV()));
 
     //Check Temp Directory, is not exist, create
     QDir myDir;
@@ -191,7 +197,9 @@ MainWindow::~MainWindow()
     if (omron) omron->disconnectDevice();
 
     clock->stop();
+    waitTimer->stop();
 
+    delete waitTimer;
     delete clock;
     delete plot;
     delete omron;
@@ -308,6 +316,11 @@ void MainWindow::showTime()
     t = t.addMSecs(totalElapse.elapsed());
     ui->lineEdit_clock->setText(QString::number(dayCounter) + "/" + t.toString("HH:mm:ss:zzz"));
     //qDebug() << "==========" << t.msec();
+}
+
+void MainWindow::allowSetNextSV()
+{
+    nextSV = true;
 }
 
 void MainWindow::on_pushButton_AskStatus_clicked()
@@ -812,8 +825,6 @@ void MainWindow::on_pushButton_Control_clicked()
         totalElapse.start(); // used for clock
         QTimer getTempTimer;
         getTempTimer.setSingleShot(true);
-        QTimer waitTimer;
-        waitTimer.setSingleShot(true);
 
         //########################### mode 4 extra code, go to targetValue_2
         //----- set SV
@@ -826,6 +837,7 @@ void MainWindow::on_pushButton_Control_clicked()
         muteLog = ui->checkBox_MuteLogMsg->isChecked();
         bool targetValue_2_notReached = true;
         bool waitTimerStarted = false;
+        waitTimer->setSingleShot(true);
         while(tempControlOnOff && mode == 4 && targetValue_2_notReached){
             getTempTimer.start(tempGetTime);
             askTemperature();
@@ -862,7 +874,7 @@ void MainWindow::on_pushButton_Control_clicked()
             while(getTempTimer.remainingTime() > 0 ){
                 waitForMSec(timing::getTempTimer);
 
-                if(waitTimer.remainingTime() <= 0 && waitTimerStarted == true){
+                if(waitTimer->remainingTime() <= 0 && waitTimerStarted == true){
                     targetValue_2_notReached = false;
                     muteLog = false;
                     LogMsg("Target Set-temp stable. Start fixed rate. Elapse time : " + QString::number(totalElapse.elapsed()/1000./60) + " mins.");
@@ -874,7 +886,7 @@ void MainWindow::on_pushButton_Control_clicked()
             }
 
             if(temperature == targetValue_2 && waitTimerStarted == false){
-                waitTimer.start(1000*60*10);
+                waitTimer->start(timing::timeUp);
                 waitTimerStarted = true;
                 muteLog = false;
                 LogMsg("Target Set-temp reached : " + QString::number(targetValue_2) + " C. Elapse time : " + QString::number(totalElapse.elapsed()/1000./60) + " mins.");
@@ -903,13 +915,17 @@ void MainWindow::on_pushButton_Control_clicked()
         const int direction = (temperature > targetValue ) ? (-1) : 1;
         LogMsg("Temperature step            : " + QString::number(direction * tempStepSize) + " C.");
 
+        if( mode == 1){
+            waitTimer->setSingleShot(true);
+            waitTimer->stop();
+            waitTimerStarted = false;
+        }else{
+            waitTimer->setSingleShot(false);
+            waitTimer->start(tempWaitTime);
+            waitTimerStarted = true;
+        }
         while(tempControlOnOff){
-            if( mode >= 2 ) {
-                waitTimer.start(tempWaitTime);
-                waitTimerStarted = true;
-            }else{
-                waitTimerStarted = false;
-            }
+            nextSV = false;
             //----------------Set SV
             if( mode == 1 || mode == 2 ){
                 if(direction * (targetValue - temperature) >= tempStepSize){
@@ -933,8 +949,6 @@ void MainWindow::on_pushButton_Control_clicked()
             LogMsg("==== Set-temp : " + QString::number(smallShift) + " C. Elapse Time : " + QString::number(totalElapse.elapsed()/1000./60.) + " mins.");
 
             setSV(smallShift);
-
-            bool nextSV = false;
 
             muteLog = ui->checkBox_MuteLogMsg->isChecked();
             do{
@@ -975,11 +989,9 @@ void MainWindow::on_pushButton_Control_clicked()
 
                 while(getTempTimer.remainingTime() > 0 ){
                     waitForMSec(timing::getTempTimer);
-                    if( waitTimer.remainingTime() <= 0 && waitTimerStarted == true){
-                        LogMsg("Time for next step.  ");
-                        nextSV = true;
+                    if( nextSV == true){
+                        break;
                     }
-
                 }
                 muteLog=false;
                 LogMsg(" .", false);
@@ -989,15 +1001,16 @@ void MainWindow::on_pushButton_Control_clicked()
                 if( mode == 1){ //========== for stable mode
                     if( qAbs(temperature - smallShift) <= tempTorr){
                         if( waitTimerStarted == false){
-                            waitTimer.start(tempWaitTime);
+                            waitTimer->start(tempWaitTime);
                             waitTimerStarted = true;
                         }
                     }else{
-                        waitTimer.stop();
+                        waitTimer->stop();
                         waitTimerStarted = false;
+                        nextSV = false;
                     }
                     if( waitTimerStarted == true){
-                        double stableTime = (tempWaitTime - waitTimer.remainingTime())/1000.;
+                        double stableTime = (tempWaitTime - waitTimer->remainingTime())/1000.;
                         LogMsg( " temperature stable for : " +  QString::number(stableTime) + " sec. |"
                          + QString::number(smallShift) + " - " + QString::number(temperature) + "| < "  + QString::number(tempTorr) + " C");
                     }
@@ -1221,7 +1234,7 @@ void MainWindow::on_pushButton_Connect_clicked()
     omron->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::Data8);
     omron->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::NoParity);
     omron->setConnectionParameter(QModbusDevice::SerialStopBitsParameter, QSerialPort::TwoStop);
-    omron->setTimeout(700);
+    omron->setTimeout(timing::timeOut);
     omron->setNumberOfRetries(0);
 
     if(omron->connectDevice()){

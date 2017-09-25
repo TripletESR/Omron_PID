@@ -32,6 +32,7 @@ private slots:
     void panalOnOff(bool IO);
 
     void showTime();
+    void allowSetNextSV();
 
     void read(QModbusDataUnit::RegisterType type, quint16 adress, int size);
     void readReady();
@@ -99,9 +100,11 @@ private:
     double pid_P, pid_I, pid_D;
 
     QTimer * clock;
+    QTimer * waitTimer;
     QTime totalElapse;
     bool checkDay;
     int dayCounter;
+    bool nextSV;
 };
 
 #endif // MAINWINDOW_H
