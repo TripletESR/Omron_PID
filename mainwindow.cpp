@@ -864,7 +864,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 fixedTime.start();
                 fixedTimeNotStarted = false;
                 muteLog = false;
-                LogMsg("Target Set-temp reached : " + QString::number(targetValue_2) + " C. Elapse time : " + totalElapse.elapsed()/1000./60 + " mins.");
+                LogMsg("Target Set-temp reached : " + QString::number(targetValue_2) + " C. Elapse time : " + QString::number(totalElapse.elapsed()/1000./60) + " mins.");
                 muteLog = ui->checkBox_MuteLogMsg->isChecked();
                 lineout.sprintf("### Target Set-temp reached : %5.1f C\n", targetValue_2);
                 stream << lineout;
@@ -873,6 +873,12 @@ void MainWindow::on_pushButton_Control_clicked()
 
             if(fixedTime.elapsed() >= 1000*60*10 ){
                 targetValue_2_notReached = false;
+                muteLog = false;
+                LogMsg("Target Set-temp stable. Start fixed rate. Elapse time : " + QString::number(totalElapse.elapsed()/1000./60) + " mins.");
+                muteLog = ui->checkBox_MuteLogMsg->isChecked();
+                lineout.sprintf("### fixed-rate start.\n");
+                stream << lineout;
+                stream.flush();
             }
         }
         muteLog = false;
@@ -945,7 +951,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 }
 
                 QDateTime date = QDateTime::currentDateTime();
-                fillDataAndPlot(date, temperature, SV, MV);
+                fillDataAndPlot(date, temperature, smallShift, MV);
 
                 lineout.sprintf("%14s,\t%12d,\t%10.1f,\t%10.1f,\t%10.1f\n",
                                 date.toString("MM-dd HH:mm:ss").toStdString().c_str(),
