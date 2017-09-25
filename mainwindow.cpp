@@ -687,11 +687,7 @@ void MainWindow::on_pushButton_Control_clicked()
             LogMsg("Target Temperature          : " + QString::number(targetValue) + " C.");
         }
 
-        //###########################  other mode
-        const int direction = (temperature > targetValue ) ? (-1) : 1;
-        LogMsg("Temperature step            : " + QString::number(direction * tempStepSize) + " C.");
-
-        //estimate total time
+        //============= estimate total time
         double estTransitionTime = 5; //min
         if( mode == 2 || mode == 3 || mode == 4) estTransitionTime = 0;
         double estNumberTransition = qAbs(temperature-targetValue)/ tempStepSize;
@@ -806,6 +802,7 @@ void MainWindow::on_pushButton_Control_clicked()
         }
         lineout.sprintf("###%11s,\t%12s,\t%10s,\t%10s,\t%10s\n", "Date", "Date_t", "temp [C]", "SV [C]", "Output [%]");
         stream << lineout;
+        stream.flush();
 
         clock->setSingleShot(false);
         clock->start(50);
@@ -861,6 +858,10 @@ void MainWindow::on_pushButton_Control_clicked()
 
             if(temperature == targetValue_2){
                 fixedTime.start();
+                LogMsg("Target Set-temp reached : " + QString::number(targetValue_2) + " C.");
+                lineout.sprintf("### Target Set-temp reached : %5.1f C\n", targetValue_2);
+                stream << lineout;
+                stream.flush();
             }
 
             if(fixedTime.elapsed() >= 1000*60*10 ){
@@ -870,8 +871,20 @@ void MainWindow::on_pushButton_Control_clicked()
         muteLog = false;
 
         //Looping ========================
-        double old_smallShift = temperature;
+        askTemperature();
+        int i = 0;
+        while(!modbusReady) {
+            i++;
+            waitForMSec(waitTime::modbus);
+            if( i > 10 ){
+                modbusReady = true;
+            }
+        }
         double smallShift = temperature;
+
+        const int direction = (temperature > targetValue ) ? (-1) : 1;
+        LogMsg("Temperature step            : " + QString::number(direction * tempStepSize) + " C.");
+
         while(tempControlOnOff){
             fixedTime.start();
             //----------------Set SV
@@ -887,8 +900,7 @@ void MainWindow::on_pushButton_Control_clicked()
 
             if( mode == 3 || mode == 4){
                 if(direction * (targetValue - smallShift) >= tempStepSize){
-                    smallShift = old_smallShift + direction * tempStepSize  ;
-                    old_smallShift = smallShift;
+                    smallShift = smallShift + direction * tempStepSize  ;
                 }else{
                     smallShift = targetValue;
                 }
@@ -940,9 +952,9 @@ void MainWindow::on_pushButton_Control_clicked()
                 while(getTempTimer->remainingTime() != -1 ){
                     waitForMSec(waitTime::getTempTimer);
                 }
-
                 muteLog=false;
-                LogMsg(" - " + QString::number(fixedTime.elapsed()/1000.), false);
+                LogMsg(".", false);
+                //LogMsg(" - " + QString::number(fixedTime.elapsed()/1000.), false);
                 muteLog = ui->checkBox_MuteLogMsg->isChecked();
 
                 if( mode == 1){ //========== for stable mode
