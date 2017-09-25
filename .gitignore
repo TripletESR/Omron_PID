@@ -10,6 +10,9 @@
 *.dll
 *.dylib
 
+# bat file
+*.bat
+
 # Qt-es
 
 /.qmake.cache
