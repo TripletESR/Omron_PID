@@ -25,6 +25,8 @@ public:
     void findSeriesPortDevices();
 
 private slots:
+    void keyPressEvent(QKeyEvent *key);
+    void keyReleaseEvent(QKeyEvent *key);
     QString formatHex(int value, int digit);
     void waitForMSec(int msec);
     void panalOnOff(bool IO);

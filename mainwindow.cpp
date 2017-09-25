@@ -51,15 +51,15 @@ MainWindow::MainWindow(QWidget *parent) :
     plot = ui->plot;
     plot->xAxis->setLabel("Time");
     plot->yAxis->setLabel("Temp. [C]");
-    plot->addGraph();
-    plot->graph(0)->setName("Temp.");
-    plot->graph(0)->setPen(QPen(Qt::blue)); // PV
-    plot->addGraph();
-    plot->graph(1)->setName("Set-temp");
-    plot->graph(1)->setPen(QPen(Qt::red)); // SV
     plot->addGraph(plot->xAxis, plot->yAxis2);
-    plot->graph(2)->setName("Output");
-    plot->graph(2)->setPen(QPen(Qt::darkGreen)); // MV
+    plot->graph(0)->setName("Output");
+    plot->graph(0)->setPen(QPen(Qt::darkGreen)); // MV
+    plot->addGraph();
+    plot->graph(1)->setName("Temp.");
+    plot->graph(1)->setPen(QPen(Qt::blue)); // PV
+    plot->addGraph();
+    plot->graph(2)->setName("Set-temp");
+    plot->graph(2)->setPen(QPen(Qt::red)); // SV
     QSharedPointer<QCPAxisTickerDateTime> dateTicker(new QCPAxisTickerDateTime);
     dateTicker->setDateTimeFormat("MM/dd HH:mm:ss");
     plot->xAxis->setTicker(dateTicker);
@@ -72,10 +72,17 @@ MainWindow::MainWindow(QWidget *parent) :
     plot->xAxis2->setTickLabels(false);
     plot->yAxis2->setTickLabels(true);
     plot->setInteraction(QCP::iRangeZoom,true);
+    plot->setInteraction(QCP::iRangeDrag,true);
     plot->axisRect()->setRangeDrag(Qt::Vertical);
     plot->axisRect()->setRangeZoom(Qt::Vertical);
     plot->legend->setVisible(true);
-    plot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
+    //set legend position
+    //plot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
+    plot->axisRect()->setAutoMargins(QCP::msLeft | QCP::msTop | QCP::msBottom);
+    plot->axisRect()->setMargins(QMargins(0,0,150,0));
+    plot->axisRect()->insetLayout()->setInsetPlacement(0, QCPLayoutInset::ipFree);
+    plot->axisRect()->insetLayout()->setInsetRect(0, QRectF(1.1,0,0.1,0.1));
+
     plot->replot();
 
     ui->comboBox_Func->addItem("0x00 Invalid", QModbusPdu::Invalid);
@@ -229,6 +236,22 @@ void MainWindow::findSeriesPortDevices()
     LogMsg ("--------------");
 }
 
+void MainWindow::keyPressEvent(QKeyEvent *key)
+{
+    if(key->key() == Qt::Key_Shift ){
+        plot->axisRect()->setRangeDrag(Qt::Horizontal);
+        plot->axisRect()->setRangeZoom(Qt::Horizontal);
+    }
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent *key)
+{
+    if(key->key() == Qt::Key_Shift ){
+        plot->axisRect()->setRangeDrag(Qt::Vertical);
+        plot->axisRect()->setRangeZoom(Qt::Vertical);
+    }
+}
+
 QString MainWindow::formatHex(int value, int digit)
 {
     QString valueStr = QString::number(value, 16).toUpper();
@@ -268,6 +291,7 @@ void MainWindow::panalOnOff(bool IO)
     ui->comboBox_Mode->setEnabled(IO);
     ui->checkBox_MuteLogMsg->setEnabled(IO);
     ui->comboBox_MemAddress->setEnabled(IO);
+    ui->lineEdit_SV2->setEnabled(IO);
 }
 
 void MainWindow::showTime()
@@ -666,11 +690,6 @@ void MainWindow::on_pushButton_Control_clicked()
         //###########################  other mode
         const int direction = (temperature > targetValue ) ? (-1) : 1;
         LogMsg("Temperature step            : " + QString::number(direction * tempStepSize) + " C.");
-        if(direction == 1){
-            plot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
-        }else{
-            plot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignRight|Qt::AlignTop);
-        }
 
         //estimate total time
         double estTransitionTime = 5; //min
@@ -712,7 +731,7 @@ void MainWindow::on_pushButton_Control_clicked()
             LogMsg("======== Normal + Fixed Rate Mode ==========");
             boxMsg.sprintf("======== Normal + Fixed Rate Mode ========== \n"
                            "1) go to %5.1f C using normal.\n"
-                           "   Time unknown. "
+                           "   Time unknown. \n"
                            "2) fixed rate to go to %5.1f C\n"
                            "   fixed-rate Set-temp Gradience   : %6.1f min/C \n"
                            "   Estimated fixed-rate time       : %6.1f min = %6.1f hr",
@@ -778,9 +797,9 @@ void MainWindow::on_pushButton_Control_clicked()
             lineout = "### Set-temp change rate    : " + QString::number(tempStableTime) + " min/C.\n";
             stream << lineout;
         }else if(mode == 4){
-            lineout = "### Set-temp normal         : " + QString::number(targetValue_2) + " C.\n";
+            lineout = "### Set-temp of normal      : " + QString::number(targetValue_2) + " C.\n";
             stream << lineout;
-            lineout = "### Set-temp fixed rate     : " + QString::number(targetValue) + " C.\n";
+            lineout = "### Set-temp of fixed rate  : " + QString::number(targetValue) + " C.\n";
             stream << lineout;
             lineout = "### Set-temp change rate    : " + QString::number(tempStableTime) + " min/C.\n";
             stream << lineout;
@@ -1277,6 +1296,7 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
         ui->comboBox_Mode->setStyleSheet("color: #FF0000");
         ui->label_TimeStable->setStyleSheet("color: #FF0000");
         ui->label_TimeStable->setText("Set-temp changes [min] :");
+        ui->label_SV_2->setStyleSheet("");
         ui->lineEdit_SV2->setEnabled(false);
     }else if(index == 0){
         ui->doubleSpinBox_TempTorr->setEnabled(true);
@@ -1285,6 +1305,7 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
         ui->comboBox_Mode->setStyleSheet("");
         ui->label_TimeStable->setStyleSheet("");
         ui->label_TimeStable->setText("Temp. stable for [min] :");
+        ui->label_SV_2->setStyleSheet("");
         ui->lineEdit_SV2->setEnabled(false);
     }else if(index == 2){
         ui->doubleSpinBox_TempTorr->setEnabled(false);
@@ -1293,6 +1314,7 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
         ui->comboBox_Mode->setStyleSheet("color: #0000FF");
         ui->label_TimeStable->setStyleSheet("color: #0000FF");
         ui->label_TimeStable->setText("Set-temp rate [min/C] :");
+        ui->label_SV_2->setStyleSheet("");
         ui->lineEdit_SV2->setEnabled(false);
     }else if( index == 3){
         ui->doubleSpinBox_TempTorr->setEnabled(false);
@@ -1302,6 +1324,7 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
         ui->label_TimeStable->setStyleSheet("color: #006325");
         ui->label_TimeStable->setText("Set-temp rate [min/C] :");
         ui->lineEdit_SV2->setEnabled(true);
+        ui->label_SV_2->setStyleSheet("color: #006325");
         ui->lineEdit_SV2->setText("92");
     }
 }
@@ -1374,10 +1397,10 @@ void MainWindow::on_actionOpen_File_triggered()
     plot->graph(1)->data()->clear();
     plot->graph(2)->data()->clear();
 
-    plot->graph(0)->data()->add(pvData);
+    plot->graph(1)->data()->add(pvData);
     if( haveSVMVData ){
-        plot->graph(1)->data()->add(svData);
-        plot->graph(2)->data()->add(mvData);
+        plot->graph(2)->data()->add(svData);
+        plot->graph(0)->data()->add(mvData);
     }
 
     plot->yAxis->rescale();
@@ -1409,11 +1432,11 @@ void MainWindow::fillDataAndPlot(QDateTime date, double PV, double SV, double MV
     mvData.push_back(plotdata);
 
     plot->graph(0)->data()->clear();
-    plot->graph(0)->data()->add(pvData);
+    plot->graph(0)->data()->add(mvData);
     plot->graph(1)->data()->clear();
-    plot->graph(1)->data()->add(svData);
+    plot->graph(1)->data()->add(pvData);
     plot->graph(2)->data()->clear();
-    plot->graph(2)->data()->add(mvData);
+    plot->graph(2)->data()->add(svData);
     plot->yAxis->rescale();
     plot->xAxis->rescale();
 
