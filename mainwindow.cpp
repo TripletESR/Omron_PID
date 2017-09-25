@@ -652,7 +652,6 @@ void MainWindow::on_pushButton_Control_clicked()
     ui->actionOpen_File->setEnabled(!tempControlOnOff);
     ui->pushButton_RecordTemp->setEnabled(!tempControlOnOff);
 
-
     if(tempControlOnOff) {
         LogMsg("================ Temperature control =====");
         ui->pushButton_Control->setStyleSheet("background-color: rgb(0,255,0)");
@@ -693,9 +692,13 @@ void MainWindow::on_pushButton_Control_clicked()
         double estNumberTransition = qAbs(temperature-targetValue)/ tempStepSize;
         double estSlope = (estTransitionTime + tempStableTime/60/1000) / tempStepSize ;
         double estTotalTime = (estTransitionTime + tempStableTime/60/1000) * estNumberTransition;
-        if( mode == 3 || mode == 4) {
+        if( mode == 3 ) {
             estSlope = ui->spinBox_TempStableTime->value(); // min/C
             estTotalTime = estSlope * qAbs(temperature-targetValue);
+        }
+        if(mode == 4){
+            estSlope = ui->spinBox_TempStableTime->value(); // min/C
+            estTotalTime = estSlope * qAbs(targetValue_2-targetValue);
         }
 
         QMessageBox box;
@@ -819,6 +822,7 @@ void MainWindow::on_pushButton_Control_clicked()
         mvData.clear();
         muteLog = ui->checkBox_MuteLogMsg->isChecked();
         bool targetValue_2_notReached = true;
+        bool fixedTimeNotStarted = true;
         while(tempControlOnOff && mode == 4 && targetValue_2_notReached){
             getTempTimer->start(tempGetTime);
             askTemperature();
@@ -856,9 +860,12 @@ void MainWindow::on_pushButton_Control_clicked()
                 waitForMSec(waitTime::getTempTimer);
             }
 
-            if(temperature == targetValue_2){
+            if(temperature == targetValue_2 && fixedTimeNotStarted == true){
                 fixedTime.start();
-                LogMsg("Target Set-temp reached : " + QString::number(targetValue_2) + " C.");
+                fixedTimeNotStarted = false;
+                muteLog = false;
+                LogMsg("Target Set-temp reached : " + QString::number(targetValue_2) + " C. Elapse time : " + totalElapse.elapsed()/1000./60 + " mins.");
+                muteLog = ui->checkBox_MuteLogMsg->isChecked();
                 lineout.sprintf("### Target Set-temp reached : %5.1f C\n", targetValue_2);
                 stream << lineout;
                 stream.flush();
@@ -881,7 +888,7 @@ void MainWindow::on_pushButton_Control_clicked()
             }
         }
         double smallShift = temperature;
-
+        LogMsg("Present Temperature : " + QString::number(temperature) + " C.");
         const int direction = (temperature > targetValue ) ? (-1) : 1;
         LogMsg("Temperature step            : " + QString::number(direction * tempStepSize) + " C.");
 
@@ -1209,6 +1216,7 @@ void MainWindow::on_pushButton_Connect_clicked()
         panalOnOff(true);
         ui->pushButton_Control->setEnabled(true);
         ui->pushButton_RecordTemp->setEnabled(true);
+        ui->lineEdit_SV2->setEnabled(false);
 
         QString title = this->windowTitle();
         this->setWindowTitle(title + " | " + ui->comboBox_SeriesNumber->currentText());
