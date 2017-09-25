@@ -46,7 +46,6 @@ private slots:
     void on_lineEdit_Cmd_returnPressed();
 
     void on_pushButton_Connect_clicked();
-    void on_pushButton_OpenFile_clicked();
     void on_pushButton_AskStatus_clicked();
     void on_pushButton_SetSV_clicked();
     void on_pushButton_GetPID_clicked();
@@ -64,7 +63,7 @@ private slots:
     void on_doubleSpinBox_MVlower_valueChanged(double arg1);
     void on_doubleSpinBox_MVupper_valueChanged(double arg1);
 
-
+    void on_actionOpen_File_triggered();
 
 private:
     Ui::MainWindow *ui;

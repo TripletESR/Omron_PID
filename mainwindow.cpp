@@ -1153,80 +1153,6 @@ void MainWindow::on_pushButton_ReadRH_clicked()
     read(QModbusDataUnit::HoldingRegisters, address, 2);
 }
 
-void MainWindow::on_pushButton_OpenFile_clicked()
-{
-    QString filePath = QFileDialog::getOpenFileName(this, "Open File", DATA_PATH );
-    QFile infile(filePath);
-
-    if(infile.open(QIODevice::ReadOnly | QIODevice::Text)){
-        LogMsg("Open File : %s" + filePath);
-    }else{
-        LogMsg("Open file failed ");
-        return;
-    }
-
-    QTextStream stream(&infile);
-    QString line;
-
-    pvData.clear();
-    svData.clear();
-    mvData.clear();
-    bool haveSVMVData = false;
-    while(stream.readLineInto(&line)){
-        if( line.left(3) == "###") {
-            LogMsg(line);
-            continue;
-        }
-        QStringList list = line.split(",");
-        if(list.size() < 3) continue;
-        QString time = list[1];
-        QString pv = list[2];
-        QCPGraphData plotdata;
-        plotdata.key = time.toInt();
-        plotdata.value = pv.toDouble();
-        pvData.push_back(plotdata);
-
-        if( list.size() <= 5){
-            haveSVMVData = true;
-            QString sv = list[3];
-            QString mv = list[4];
-            plotdata.value = sv.toDouble();
-            svData.push_back(plotdata);
-
-            plotdata.value = mv.toDouble();
-            mvData.push_back(plotdata);
-        }
-    }
-
-    infile.close();
-
-    plot->graph(0)->data()->clear();
-    plot->graph(1)->data()->clear();
-    plot->graph(2)->data()->clear();
-
-    plot->graph(0)->data()->add(pvData);
-    if( haveSVMVData ){
-        plot->graph(1)->data()->add(svData);
-        plot->graph(2)->data()->add(mvData);
-    }
-
-    plot->yAxis->rescale();
-    plot->yAxis2->rescale();
-    plot->xAxis->rescale();
-
-    double ymin = plot->yAxis->range().lower - 2;
-    double ymax = plot->yAxis->range().upper + 2;
-    plot->yAxis->setRangeLower(ymin);
-    plot->yAxis->setRangeUpper(ymax);
-
-    ymax = plot->yAxis2->range().upper + 2;
-    plot->yAxis2->setRangeLower(0);
-    plot->yAxis2->setRangeUpper(ymax);
-
-    plot->replot();
-
-}
-
 void MainWindow::on_pushButton_Connect_clicked()
 {
     QString omronPortName = ui->comboBox_SeriesNumber->currentData().toString();
@@ -1383,4 +1309,77 @@ void MainWindow::on_comboBox_MemAddress_currentTextChanged(const QString &arg1)
     quint16 address = ui->comboBox_MemAddress->currentData().toUInt();
     LogMsg("--------- read " + arg1);
     read(QModbusDataUnit::HoldingRegisters, address, 2);
+}
+
+void MainWindow::on_actionOpen_File_triggered()
+{
+    QString filePath = QFileDialog::getOpenFileName(this, "Open File", DATA_PATH );
+    QFile infile(filePath);
+
+    if(infile.open(QIODevice::ReadOnly | QIODevice::Text)){
+        LogMsg("Open File : %s" + filePath);
+    }else{
+        LogMsg("Open file failed ");
+        return;
+    }
+
+    QTextStream stream(&infile);
+    QString line;
+
+    pvData.clear();
+    svData.clear();
+    mvData.clear();
+    bool haveSVMVData = false;
+    while(stream.readLineInto(&line)){
+        if( line.left(3) == "###") {
+            LogMsg(line);
+            continue;
+        }
+        QStringList list = line.split(",");
+        if(list.size() < 3) continue;
+        QString time = list[1];
+        QString pv = list[2];
+        QCPGraphData plotdata;
+        plotdata.key = time.toInt();
+        plotdata.value = pv.toDouble();
+        pvData.push_back(plotdata);
+
+        if( list.size() <= 5){
+            haveSVMVData = true;
+            QString sv = list[3];
+            QString mv = list[4];
+            plotdata.value = sv.toDouble();
+            svData.push_back(plotdata);
+
+            plotdata.value = mv.toDouble();
+            mvData.push_back(plotdata);
+        }
+    }
+
+    infile.close();
+
+    plot->graph(0)->data()->clear();
+    plot->graph(1)->data()->clear();
+    plot->graph(2)->data()->clear();
+
+    plot->graph(0)->data()->add(pvData);
+    if( haveSVMVData ){
+        plot->graph(1)->data()->add(svData);
+        plot->graph(2)->data()->add(mvData);
+    }
+
+    plot->yAxis->rescale();
+    plot->yAxis2->rescale();
+    plot->xAxis->rescale();
+
+    double ymin = plot->yAxis->range().lower - 2;
+    double ymax = plot->yAxis->range().upper + 2;
+    plot->yAxis->setRangeLower(ymin);
+    plot->yAxis->setRangeUpper(ymax);
+
+    ymax = plot->yAxis2->range().upper + 2;
+    plot->yAxis2->setRangeLower(0);
+    plot->yAxis2->setRangeUpper(ymax);
+
+    plot->replot();
 }

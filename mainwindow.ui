@@ -321,20 +321,13 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="0" colspan="2">
-        <widget class="QPushButton" name="pushButton_OpenFile">
-         <property name="text">
-          <string>Open File</string>
-         </property>
-        </widget>
-       </item>
        <item row="7" column="0" colspan="2">
         <widget class="QComboBox" name="comboBox_Mode"/>
        </item>
        <item row="6" column="0" colspan="2">
         <widget class="QCheckBox" name="checkBox_MuteLogMsg">
          <property name="text">
-          <string>Mute LogMsg</string>
+          <string>Simple LogMsg</string>
          </property>
          <property name="checked">
           <bool>true</bool>
@@ -510,6 +503,13 @@
      <height>21</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionOpen_File"/>
+   </widget>
+   <addaction name="menuFile"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -520,6 +520,11 @@
    </attribute>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionOpen_File">
+   <property name="text">
+    <string>Open File</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
