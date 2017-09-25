@@ -843,7 +843,7 @@ void MainWindow::on_pushButton_Control_clicked()
             QDateTime date = QDateTime::currentDateTime();
             fillDataAndPlot(date, temperature, targetValue_2, MV);
 
-            lineout.sprintf("%14s,\t%12.0f,\t%10.1f,\t%10.1f,\t%10.1f\n",
+            lineout.sprintf("%14s,\t%12d,\t%10.1f,\t%10.1f,\t%10.1f\n",
                             date.toString("MM-dd HH:mm:ss").toStdString().c_str(),
                             date.toTime_t(),
                             temperature,
@@ -940,7 +940,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 QDateTime date = QDateTime::currentDateTime();
                 fillDataAndPlot(date, temperature, SV, MV);
 
-                lineout.sprintf("%14s,\t%12.0f,\t%10.1f,\t%10.1f,\t%10.1f\n",
+                lineout.sprintf("%14s,\t%12d,\t%10.1f,\t%10.1f,\t%10.1f\n",
                                 date.toString("MM-dd HH:mm:ss").toStdString().c_str(),
                                 date.toTime_t(),
                                 temperature,
@@ -1028,7 +1028,7 @@ void MainWindow::on_pushButton_Control_clicked()
             QDateTime date = QDateTime::currentDateTime();
             fillDataAndPlot(date, temperature, smallShift, MV);
 
-            lineout.sprintf("%14s,\t%12.0f,\t%10.1f,\t%10.1f,\t%10.1f\n",
+            lineout.sprintf("%14s,\t%12d,\t%10.1f,\t%10.1f,\t%10.1f\n",
                             date.toString("MM-dd HH:mm:ss").toStdString().c_str(),
                             date.toTime_t(),
                             temperature,
@@ -1154,7 +1154,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             QDateTime date = QDateTime::currentDateTime();
             fillDataAndPlot(date, temperature, SV, MV);
 
-            lineout.sprintf("%14s,\t%12.0f,\t%10.1f,\t%10.1f,\t%10.1f\n",
+            lineout.sprintf("%14s,\t%12d,\t%10.1f,\t%10.1f,\t%10.1f\n",
                             date.toString("MM-dd HH:mm:ss").toStdString().c_str(),
                             date.toTime_t(),
                             temperature,
