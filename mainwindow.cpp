@@ -865,6 +865,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 fixedTimeNotStarted = false;
                 muteLog = false;
                 LogMsg("Target Set-temp reached : " + QString::number(targetValue_2) + " C. Elapse time : " + QString::number(totalElapse.elapsed()/1000./60) + " mins.");
+                LogMsg("wait for 10 mins.");
                 muteLog = ui->checkBox_MuteLogMsg->isChecked();
                 lineout.sprintf("### Target Set-temp reached : %5.1f C\n", targetValue_2);
                 stream << lineout;
