@@ -18,6 +18,11 @@ enum E5CC_Address{
     PID_D=0x0A04
 };
 
+enum waitTime{
+    modbus = 100,
+    getTempTimer = 10
+};
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -104,10 +109,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->comboBox_Mode->addItem("Stable", 1);
     ui->comboBox_Mode->addItem("Fixed time", 2);
     ui->comboBox_Mode->addItem("Fixed rate", 3);
+    ui->comboBox_Mode->addItem("Normal + Fixed rate", 4);
 
     ui->comboBox_Mode->setItemData(0, QBrush(Qt::black), Qt::TextColorRole);
     ui->comboBox_Mode->setItemData(1, QBrush(Qt::red), Qt::TextColorRole);
     ui->comboBox_Mode->setItemData(2, QBrush(Qt::blue), Qt::TextColorRole);
+    ui->comboBox_Mode->setItemData(3, QBrush(Qt::darkGreen), Qt::TextColorRole);
 
     findSeriesPortDevices();
     omron = NULL;
@@ -285,7 +292,7 @@ void MainWindow::on_pushButton_AskStatus_clicked()
     int i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -295,7 +302,7 @@ void MainWindow::on_pushButton_AskStatus_clicked()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -305,7 +312,7 @@ void MainWindow::on_pushButton_AskStatus_clicked()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -441,7 +448,7 @@ void MainWindow::getSetting()
     int i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -451,7 +458,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -461,7 +468,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -473,7 +480,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -482,7 +489,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -495,7 +502,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -505,7 +512,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -515,7 +522,7 @@ void MainWindow::getSetting()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -546,6 +553,18 @@ void MainWindow::setAT(int atFlag)
     }
     QByteArray value = QByteArray::fromHex(cmd.toStdString().c_str());
     request(QModbusPdu::WriteSingleRegister, value);
+}
+
+void MainWindow::setSV(double SV)
+{
+    statusBar()->clearMessage();
+    int sv_input = (qint16) (SV / tempDecimal + 0.5);
+    QString valueStr = formatHex(sv_input, 8);
+    QString addressStr = formatHex(E5CC_Address::SV, 4);
+
+    QString cmd = addressStr + " 00 02 04" + valueStr;
+    QByteArray value = QByteArray::fromHex(cmd.toStdString().c_str());
+    request(QModbusPdu::WriteMultipleRegisters, value);
 }
 
 void MainWindow::request(QModbusPdu::FunctionCode code, QByteArray cmd)
@@ -599,25 +618,14 @@ void MainWindow::on_lineEdit_Cmd_returnPressed()
 
 void MainWindow::on_pushButton_SetSV_clicked()
 {
-    statusBar()->clearMessage();
-    double sv = ui->lineEdit_SV->text().toDouble();
-    double sv_input = sv / tempDecimal;
-    int sv_2 = (qint16) (sv_input + 0.5);
-    qDebug() << sv_input << "," << sv_2;
-    QString valueStr = formatHex(sv_2, 8);
-    QString addressStr = formatHex(E5CC_Address::SV, 4);
-
-    QString cmd = addressStr + " 00 02 04" + valueStr;
-    QByteArray value = QByteArray::fromHex(cmd.toStdString().c_str());
-    request(QModbusPdu::WriteMultipleRegisters, value);
-
+    setSV( ui->lineEdit_SV->text().toDouble());
 }
 
 void MainWindow::on_pushButton_Control_clicked()
 {
     tempControlOnOff = !tempControlOnOff;
     panalOnOff(!tempControlOnOff);
-    ui->pushButton_OpenFile->setEnabled(!tempControlOnOff);
+    ui->actionOpen_File->setEnabled(!tempControlOnOff);
     ui->pushButton_RecordTemp->setEnabled(!tempControlOnOff);
 
 
@@ -638,6 +646,7 @@ void MainWindow::on_pushButton_Control_clicked()
     if(tempControlOnOff){
         on_pushButton_AskStatus_clicked();
         iniTemp = temperature;
+        LogMsg("Current Temperature         : " + QString::number(temperature) + " C.");
 
         const double targetValue = ui->lineEdit_SV->text().toDouble();
         const int tempGetTime = ui->spinBox_TempRecordTime->value() * 1000; // msec
@@ -645,10 +654,16 @@ void MainWindow::on_pushButton_Control_clicked()
         const double tempTorr = ui->doubleSpinBox_TempTorr->value();
         const double tempStepSize = ui->doubleSpinBox_TempStepSize->value();
         const int mode = ui->comboBox_Mode->currentData().toInt();
+        const double targetValue_2 = ui->lineEdit_SV2->text().toDouble();
 
-        LogMsg("Current Temperature         : " + QString::number(temperature) + " C.");
-        LogMsg("Target Temperature          : " + QString::number(targetValue) + " C.");
+        if( mode == 4){
+            LogMsg("First go to : " + QString::number(targetValue_2) + " C. normaly.");
+            LogMsg("Then go to : " + QString::number(targetValue) + " C. at fixed rate.");
+        }else{
+            LogMsg("Target Temperature          : " + QString::number(targetValue) + " C.");
+        }
 
+        //###########################  other mode
         const int direction = (temperature > targetValue ) ? (-1) : 1;
         LogMsg("Temperature step            : " + QString::number(direction * tempStepSize) + " C.");
         if(direction == 1){
@@ -659,11 +674,11 @@ void MainWindow::on_pushButton_Control_clicked()
 
         //estimate total time
         double estTransitionTime = 5; //min
-        if( mode == 2 || mode == 3) estTransitionTime = 0;
+        if( mode == 2 || mode == 3 || mode == 4) estTransitionTime = 0;
         double estNumberTransition = qAbs(temperature-targetValue)/ tempStepSize;
         double estSlope = (estTransitionTime + tempStableTime/60/1000) / tempStepSize ;
         double estTotalTime = (estTransitionTime + tempStableTime/60/1000) * estNumberTransition;
-        if( mode == 3 ) {
+        if( mode == 3 || mode == 4) {
             estSlope = ui->spinBox_TempStableTime->value(); // min/C
             estTotalTime = estSlope * qAbs(temperature-targetValue);
         }
@@ -693,6 +708,17 @@ void MainWindow::on_pushButton_Control_clicked()
                            "Estimated total time : %6.1f min = %6.1f hr",
                            estSlope,
                            estTotalTime, estTotalTime/60.);
+        }else if(mode == 4){
+            LogMsg("======== Normal + Fixed Rate Mode ==========");
+            boxMsg.sprintf("======== Normal + Fixed Rate Mode ========== \n"
+                           "1) go to %5.1f C using normal.\n"
+                           "   Time unknown. "
+                           "2) fixed rate to go to %5.1f C\n"
+                           "   fixed-rate Set-temp Gradience   : %6.1f min/C \n"
+                           "   Estimated fixed-rate time       : %6.1f min = %6.1f hr",
+                           targetValue_2, targetValue,
+                           estSlope,
+                           estTotalTime, estTotalTime/60.);
         }
         LogMsg("Estimated tran. Time : " + QString::number(estTransitionTime) + " min.");
         LogMsg("Estimated gradience  : " + QString::number(estSlope) + " min/C.");
@@ -705,7 +731,7 @@ void MainWindow::on_pushButton_Control_clicked()
             tempControlOnOff = false;
             ui->pushButton_Control->setStyleSheet("");
             panalOnOff(true);
-            ui->pushButton_OpenFile->setEnabled(true);
+            ui->actionOpen_File->setEnabled(true);
             ui->pushButton_RecordTemp->setEnabled(true);
             on_comboBox_Mode_currentIndexChanged(ui->comboBox_Mode->currentIndex());
             LogMsg("=============== Slow Temperature control cancelled.======");
@@ -734,6 +760,8 @@ void MainWindow::on_pushButton_Control_clicked()
             lineout = "### Control mode          :  Fixed Time.\n";
         }else if(mode == 3){
             lineout = "### Control mode          :  Set-temp Fixed Rate. \n";
+        }else if(mode == 4){
+            lineout = "### Control mode          :  Normal + Set-temp Fixed Rate. \n";
         }
         stream << lineout;
         lineout = "### Target Temperature          : " + QString::number(targetValue) + " C.\n";
@@ -749,20 +777,82 @@ void MainWindow::on_pushButton_Control_clicked()
         }else if(mode == 3){
             lineout = "### Set-temp change rate    : " + QString::number(tempStableTime) + " min/C.\n";
             stream << lineout;
+        }else if(mode == 4){
+            lineout = "### Set-temp normal         : " + QString::number(targetValue_2) + " C.\n";
+            stream << lineout;
+            lineout = "### Set-temp fixed rate     : " + QString::number(targetValue) + " C.\n";
+            stream << lineout;
+            lineout = "### Set-temp change rate    : " + QString::number(tempStableTime) + " min/C.\n";
+            stream << lineout;
         }
         lineout.sprintf("###%11s,\t%12s,\t%10s,\t%10s,\t%10s\n", "Date", "Date_t", "temp [C]", "SV [C]", "Output [%]");
         stream << lineout;
 
-        //Looping ========================
-        pvData.clear();
-        svData.clear();
-        mvData.clear();
-        double old_smallShift = temperature;
-        double smallShift = temperature;
         clock->setSingleShot(false);
         clock->start(50);
         totalElapse.start();
         QTime fixedTime;
+
+        //########################### mode 4 extra code, go to targetValue_2
+        //----- set SV
+        setSV(targetValue_2);
+
+        //----- wait for temp reach targetValue_2, while recording temperature.
+        pvData.clear();
+        svData.clear();
+        mvData.clear();
+        muteLog = ui->checkBox_MuteLogMsg->isChecked();
+        bool targetValue_2_notReached = true;
+        while(tempControlOnOff && mode == 4 && targetValue_2_notReached){
+            getTempTimer->start(tempGetTime);
+            askTemperature();
+            int i = 0;
+            while(!modbusReady) {
+                i++;
+                waitForMSec(waitTime::modbus);
+                if( i > 10 ){
+                    modbusReady = true;
+                }
+            }
+            askMV();
+            i = 0;
+            while(!modbusReady) {
+                i++;
+                waitForMSec(waitTime::modbus);
+                if( i > 10 ){
+                    modbusReady = true;
+                }
+            }
+
+            QDateTime date = QDateTime::currentDateTime();
+            fillDataAndPlot(date, temperature, targetValue_2, MV);
+
+            lineout.sprintf("%14s,\t%12.0f,\t%10.1f,\t%10.1f,\t%10.1f\n",
+                            date.toString("MM-dd HH:mm:ss").toStdString().c_str(),
+                            date.toTime_t(),
+                            temperature,
+                            targetValue_2,
+                            MV);
+            stream << lineout;
+            stream.flush();
+
+            while(getTempTimer->remainingTime() != -1 ){
+                waitForMSec(waitTime::getTempTimer);
+            }
+
+            if(temperature == targetValue_2){
+                fixedTime.start();
+            }
+
+            if(fixedTime.elapsed() >= 1000*60*10 ){
+                targetValue_2_notReached = false;
+            }
+        }
+        muteLog = false;
+
+        //Looping ========================
+        double old_smallShift = temperature;
+        double smallShift = temperature;
         while(tempControlOnOff){
             fixedTime.start();
             //----------------Set SV
@@ -776,7 +866,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 }
             }
 
-            if( mode == 3){
+            if( mode == 3 || mode == 4){
                 if(direction * (targetValue - smallShift) >= tempStepSize){
                     smallShift = old_smallShift + direction * tempStepSize  ;
                     old_smallShift = smallShift;
@@ -788,14 +878,7 @@ void MainWindow::on_pushButton_Control_clicked()
             ui->lineEdit_CurrentSV->setText(QString::number(smallShift) + " C");
             LogMsg("==== Set-temp : " + QString::number(smallShift) + " C. Elapse Time : " + QString::number(totalElapse.elapsed()/1000./60.) + " mins.");
 
-            double sp_input = smallShift / tempDecimal;
-            int sp_2 = (qint16) (sp_input + 0.5);
-            QString valueStr = formatHex(sp_2, 8);
-            QString addressStr = formatHex(E5CC_Address::SV, 4);
-
-            QString cmd = addressStr + " 00 02 04" + valueStr;
-            QByteArray value = QByteArray::fromHex(cmd.toStdString().c_str());
-            request(QModbusPdu::WriteMultipleRegisters, value);
+            setSV(smallShift);
 
             int count = 0;
             muteLog = ui->checkBox_MuteLogMsg->isChecked();
@@ -808,7 +891,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 int i = 0;
                 while(!modbusReady) {
                     i++;
-                    waitForMSec(300);
+                    waitForMSec(waitTime::modbus);
                     if( i > 10 ){
                         modbusReady = true;
                     }
@@ -817,43 +900,18 @@ void MainWindow::on_pushButton_Control_clicked()
                 i = 0;
                 while(!modbusReady) {
                     i++;
-                    waitForMSec(300);
+                    waitForMSec(waitTime::modbus);
                     if( i > 10 ){
                         modbusReady = true;
                     }
                 }
 
-                QDateTime currentTime = QDateTime::currentDateTime();
-                QCPGraphData plotdata;
-                plotdata.key = currentTime.toTime_t();
-
-                plotdata.value = temperature;
-                pvData.push_back(plotdata);
-                plotdata.value = smallShift;
-                svData.push_back(plotdata);
-                plotdata.value = MV;
-                mvData.push_back(plotdata);
-
-                plot->graph(0)->data()->clear();
-                plot->graph(0)->data()->add(pvData);
-                plot->graph(1)->data()->clear();
-                plot->graph(1)->data()->add(svData);
-                plot->graph(2)->data()->clear();
-                plot->graph(2)->data()->add(mvData);
-                plot->yAxis->rescale();
-                plot->xAxis->rescale();
-
-                double ymin = plot->yAxis->range().lower - 2;
-                double ymax = plot->yAxis->range().upper + 2;
-
-                plot->yAxis->setRangeLower(ymin);
-                plot->yAxis->setRangeUpper(ymax);
-
-                plot->replot();
+                QDateTime date = QDateTime::currentDateTime();
+                fillDataAndPlot(date, temperature, SV, MV);
 
                 lineout.sprintf("%14s,\t%12.0f,\t%10.1f,\t%10.1f,\t%10.1f\n",
-                                currentTime.toString("MM-dd HH:mm:ss").toStdString().c_str(),
-                                plotdata.key,
+                                date.toString("MM-dd HH:mm:ss").toStdString().c_str(),
+                                date.toTime_t(),
                                 temperature,
                                 smallShift,
                                 MV);
@@ -861,7 +919,7 @@ void MainWindow::on_pushButton_Control_clicked()
                 stream.flush();
 
                 while(getTempTimer->remainingTime() != -1 ){
-                    waitForMSec(10);
+                    waitForMSec(waitTime::getTempTimer);
                 }
 
                 muteLog=false;
@@ -884,7 +942,7 @@ void MainWindow::on_pushButton_Control_clicked()
                         LogMsg("time for next step. fixed time = " + QString::number(fixedTime.elapsed()/60./1000.) + " mins.");
                         count = tempStableTime + 10; // just to make the count > tempStableTime
                     }
-                }else if(mode == 3){
+                }else if(mode == 3 || mode == 4){
                     if( fixedTime.elapsed() >= estSlope*60*1000*0.1 - 500){
                         LogMsg("time for next step. Fixed rate = " + QString::number(fixedTime.elapsed()/60./1000.) + " min/0.1C.");
                         count = tempStableTime + 10; // just to make the count > tempStableTime
@@ -896,7 +954,7 @@ void MainWindow::on_pushButton_Control_clicked()
             if (smallShift == targetValue){
                 if( mode == 1 ) {
                     lineout = "###=========== Target Temperature Reached =============";
-                }else if( mode == 2 || mode == 3) {
+                }else if( mode == 2 || mode == 3 || mode == 4) {
                     lineout = "###=========== Time Up  =============";
                 }
                 stream << lineout;
@@ -915,14 +973,13 @@ void MainWindow::on_pushButton_Control_clicked()
         //only measure temperature
         muteLog = true;
         while(tempControlOnOff){
-            int modBusWaitTime = 0;
+            getTempTimer->start(tempGetTime);
             qDebug()  << "temp control. do-loop 2 = " << tempControlOnOff;
             askTemperature();
             int i = 0;
             while(!modbusReady) {
                 i++;
-                waitForMSec(300);
-                modBusWaitTime += 300;
+                waitForMSec(waitTime::modbus);
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -931,62 +988,33 @@ void MainWindow::on_pushButton_Control_clicked()
             i = 0;
             while(!modbusReady) {
                 i++;
-                waitForMSec(300);
-                modBusWaitTime += 300;
+                waitForMSec(waitTime::modbus);
                 if( i > 10 ){
                     modbusReady = true;
                 }
             }
 
             QDateTime date = QDateTime::currentDateTime();
-            QCPGraphData plotdata;
-            plotdata.key = date.toTime_t();
-            plotdata.value = temperature;
-            pvData.push_back(plotdata);
-
-            plotdata.value = smallShift;
-            svData.push_back(plotdata);
-
-            plotdata.value = MV;
-            mvData.push_back(plotdata);
-
-            plot->graph(0)->data()->clear();
-            plot->graph(0)->data()->add(pvData);
-            plot->graph(1)->data()->clear();
-            plot->graph(1)->data()->add(svData);
-            plot->graph(2)->data()->clear();
-            plot->graph(2)->data()->add(mvData);
-            plot->yAxis->rescale();
-            plot->xAxis->rescale();
-
-            double ymin = plot->yAxis->range().lower - 2;
-            double ymax = plot->yAxis->range().upper + 2;
-
-            plot->yAxis->setRangeLower(ymin);
-            plot->yAxis->setRangeUpper(ymax);
-
-            plot->replot();
+            fillDataAndPlot(date, temperature, smallShift, MV);
 
             lineout.sprintf("%14s,\t%12.0f,\t%10.1f,\t%10.1f,\t%10.1f\n",
                             date.toString("MM-dd HH:mm:ss").toStdString().c_str(),
-                            plotdata.key,
+                            date.toTime_t(),
                             temperature,
                             smallShift,
                             MV);
             stream << lineout;
             stream.flush(); // write to file
 
-            waitForMSec(tempGetTime -  modBusWaitTime);
+            while(getTempTimer->remainingTime() != -1 ){
+                waitForMSec(waitTime::getTempTimer);
+            }
 
         };
         muteLog = false;
 
         stream << "###============ end of file ==============";
         outfile.close();
-
-        //panalOnOff(true);
-        //ui->pushButton_Control->setStyleSheet("");
-        //tempControlOnOff = false;
     }
 
 }
@@ -1016,7 +1044,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
 {
     tempRecordOnOff = !tempRecordOnOff;
     ui->pushButton_Control->setEnabled(!tempRecordOnOff);
-    ui->pushButton_OpenFile->setEnabled(!tempRecordOnOff);
+    ui->actionOpen_File->setEnabled(!tempRecordOnOff);
     panalOnOff(!tempRecordOnOff);
 
     if(tempRecordOnOff){
@@ -1030,7 +1058,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         totalElapse.setHMS(0,0,0,0);
     }
 
-    plot->graph(1)->data()->clear();
+    //plot->graph(1)->data()->clear();
 
     if( tempRecordOnOff){
         clock->setSingleShot(false);
@@ -1041,7 +1069,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
         int i = 0;
         while(!modbusReady) {
             i++;
-            waitForMSec(300);
+            waitForMSec(waitTime::modbus);
             if( i > 10 ){
                 modbusReady = true;
             }
@@ -1077,7 +1105,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             int i = 0;
             while(!modbusReady) {
                 i++;
-                waitForMSec(300);
+                waitForMSec(waitTime::modbus);
                 if( i > 10 ){
                     modbusReady = true;
                 }
@@ -1086,46 +1114,18 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             i = 0;
             while(!modbusReady) {
                 i++;
-                waitForMSec(300);
+                waitForMSec(waitTime::modbus);
                 if( i > 10 ){
                     modbusReady = true;
                 }
             }
 
             QDateTime date = QDateTime::currentDateTime();
-            QCPGraphData plotdata;
-            plotdata.key = date.toTime_t();
-
-            plotdata.value = temperature;
-            //plotdata.value = 100;
-            pvData.push_back(plotdata);
-
-            plotdata.value = SV;
-            svData.push_back(plotdata);
-
-            plotdata.value = MV;
-            mvData.push_back(plotdata);
-
-            plot->graph(0)->data()->clear();
-            plot->graph(0)->data()->add(pvData);
-            plot->graph(1)->data()->clear();
-            plot->graph(1)->data()->add(svData);
-            plot->graph(2)->data()->clear();
-            plot->graph(2)->data()->add(mvData);
-            plot->yAxis->rescale();
-            plot->xAxis->rescale();
-
-            double ymin = plot->yAxis->range().lower - 2;
-            double ymax = plot->yAxis->range().upper + 2;
-
-            plot->yAxis->setRangeLower(ymin);
-            plot->yAxis->setRangeUpper(ymax);
-
-            plot->replot();
+            fillDataAndPlot(date, temperature, SV, MV);
 
             lineout.sprintf("%14s,\t%12.0f,\t%10.1f,\t%10.1f,\t%10.1f\n",
                             date.toString("MM-dd HH:mm:ss").toStdString().c_str(),
-                            plotdata.key,
+                            date.toTime_t(),
                             temperature,
                             SV,
                             MV);
@@ -1133,7 +1133,7 @@ void MainWindow::on_pushButton_RecordTemp_clicked()
             stream.flush();
 
             while(getTempTimer->remainingTime() != -1 ){
-                waitForMSec(10);
+                waitForMSec(waitTime::getTempTimer);
             }
         };
         muteLog = false;
@@ -1240,7 +1240,7 @@ void MainWindow::on_pushButton_GetPID_clicked()
     int i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -1250,7 +1250,7 @@ void MainWindow::on_pushButton_GetPID_clicked()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -1260,7 +1260,7 @@ void MainWindow::on_pushButton_GetPID_clicked()
     i = 0;
     while(!modbusReady) {
         i++;
-        waitForMSec(300);
+        waitForMSec(waitTime::modbus);
         if( i > 10 ){
             modbusReady = true;
         }
@@ -1277,6 +1277,7 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
         ui->comboBox_Mode->setStyleSheet("color: #FF0000");
         ui->label_TimeStable->setStyleSheet("color: #FF0000");
         ui->label_TimeStable->setText("Set-temp changes [min] :");
+        ui->lineEdit_SV2->setEnabled(false);
     }else if(index == 0){
         ui->doubleSpinBox_TempTorr->setEnabled(true);
         ui->doubleSpinBox_TempStepSize->setEnabled(true);
@@ -1284,6 +1285,7 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
         ui->comboBox_Mode->setStyleSheet("");
         ui->label_TimeStable->setStyleSheet("");
         ui->label_TimeStable->setText("Temp. stable for [min] :");
+        ui->lineEdit_SV2->setEnabled(false);
     }else if(index == 2){
         ui->doubleSpinBox_TempTorr->setEnabled(false);
         ui->doubleSpinBox_TempStepSize->setEnabled(false);
@@ -1291,6 +1293,16 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
         ui->comboBox_Mode->setStyleSheet("color: #0000FF");
         ui->label_TimeStable->setStyleSheet("color: #0000FF");
         ui->label_TimeStable->setText("Set-temp rate [min/C] :");
+        ui->lineEdit_SV2->setEnabled(false);
+    }else if( index == 3){
+        ui->doubleSpinBox_TempTorr->setEnabled(false);
+        ui->doubleSpinBox_TempStepSize->setEnabled(false);
+        ui->doubleSpinBox_TempStepSize->setValue(0.1);
+        ui->comboBox_Mode->setStyleSheet("color: #006325");
+        ui->label_TimeStable->setStyleSheet("color: #006325");
+        ui->label_TimeStable->setText("Set-temp rate [min/C] :");
+        ui->lineEdit_SV2->setEnabled(true);
+        ui->lineEdit_SV2->setText("92");
     }
 }
 
@@ -1382,4 +1394,35 @@ void MainWindow::on_actionOpen_File_triggered()
     plot->yAxis2->setRangeUpper(ymax);
 
     plot->replot();
+}
+
+void MainWindow::fillDataAndPlot(QDateTime date, double PV, double SV, double MV)
+{
+    QCPGraphData plotdata;
+    plotdata.key = date.toTime_t();
+
+    plotdata.value = PV;
+    pvData.push_back(plotdata);
+    plotdata.value = SV;
+    svData.push_back(plotdata);
+    plotdata.value = MV;
+    mvData.push_back(plotdata);
+
+    plot->graph(0)->data()->clear();
+    plot->graph(0)->data()->add(pvData);
+    plot->graph(1)->data()->clear();
+    plot->graph(1)->data()->add(svData);
+    plot->graph(2)->data()->clear();
+    plot->graph(2)->data()->add(mvData);
+    plot->yAxis->rescale();
+    plot->xAxis->rescale();
+
+    double ymin = plot->yAxis->range().lower - 2;
+    double ymax = plot->yAxis->range().upper + 2;
+
+    plot->yAxis->setRangeLower(ymin);
+    plot->yAxis->setRangeUpper(ymax);
+
+    plot->replot();
+
 }

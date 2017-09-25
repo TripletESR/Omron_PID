@@ -42,6 +42,7 @@ private slots:
     void askMVlower();
     void getSetting();
     void setAT(int atFlag);
+    void setSV(double SV);
 
     void on_lineEdit_Cmd_returnPressed();
 
@@ -64,6 +65,8 @@ private slots:
     void on_doubleSpinBox_MVupper_valueChanged(double arg1);
 
     void on_actionOpen_File_triggered();
+
+    void fillDataAndPlot(QDateTime date, double PV, double SV, double MV);
 
 private:
     Ui::MainWindow *ui;
