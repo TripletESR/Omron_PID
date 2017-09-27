@@ -26,6 +26,8 @@ enum timing{
     timeOut = 700
 };
 
+//TODO nicer time display on LogMsg
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -925,8 +927,6 @@ void MainWindow::on_pushButton_Control_clicked()
 
         if( mode == 1){
             waitTimer->setSingleShot(true);
-            waitTimer->stop();
-            waitTimerStarted = false;
         }else{
             waitTimer->setSingleShot(false);
             waitTimer->start(tempWaitTime);
@@ -934,6 +934,10 @@ void MainWindow::on_pushButton_Control_clicked()
         }
         while(tempControlOnOff){
             nextSV = false;
+            if( mode == 1) {
+                waitTimer->stop();
+                waitTimerStarted = false;
+            }
             //----------------Set SV
             if( mode == 1 || mode == 2 ){
                 if(direction * (targetValue - temperature) >= tempStepSize){
@@ -1002,7 +1006,12 @@ void MainWindow::on_pushButton_Control_clicked()
                     }
                 }
                 muteLog=false;
-                LogMsg(" .", false);
+                //TODO under friendly display
+                if(waitTimerStarted){
+                    LogMsg(" x", false);
+                }else{
+                    LogMsg(" /", false);
+                }
                 //LogMsg(" - " + QString::number(fixedTime.elapsed()/1000.), false);
                 muteLog = ui->checkBox_MuteLogMsg->isChecked();
 
@@ -1266,7 +1275,7 @@ void MainWindow::on_pushButton_Connect_clicked()
 
     }else{
         ui->textEdit_Log->setTextColor(QColor(255,0,0,255));
-        LogMsg("The Omron temperature control cannot be found on any COM port.");
+        LogMsg("The Omron temperature control cannot be connected on any COM port.");
         ui->textEdit_Log->setTextColor(QColor(0,0,0,255));
         ui->comboBox_SeriesNumber->setEnabled(true);
         ui->pushButton_Connect->setStyleSheet("");
