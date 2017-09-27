@@ -300,6 +300,7 @@ void MainWindow::panalOnOff(bool IO)
     ui->checkBox_MuteLogMsg->setEnabled(IO);
     ui->comboBox_MemAddress->setEnabled(IO);
     ui->lineEdit_SV2->setEnabled(IO);
+    ui->doubleSpinBox_SV2WaitTime->setEnabled(IO);
 }
 
 void MainWindow::showTime()
@@ -692,6 +693,7 @@ void MainWindow::on_pushButton_Control_clicked()
         const double tempStepSize = ui->doubleSpinBox_TempStepSize->value();
         const int mode = ui->comboBox_Mode->currentData().toInt();
         const double targetValue_2 = ui->lineEdit_SV2->text().toDouble();
+        const double targetValue_2_waitTime = ui->doubleSpinBox_SV2WaitTime->value() * 60.*1000.;
         if( mode == 4){
             tempWaitTime = tempWaitTime * tempStepSize;
         }
@@ -891,7 +893,7 @@ void MainWindow::on_pushButton_Control_clicked()
             }
 
             if(temperature == targetValue_2 && waitTimerStarted == false){
-                waitTimer->start(timing::timeUp);
+                waitTimer->start(targetValue_2_waitTime);
                 waitTimerStarted = true;
 
                 muteLog = false;
@@ -1255,6 +1257,7 @@ void MainWindow::on_pushButton_Connect_clicked()
         ui->pushButton_Control->setEnabled(true);
         ui->pushButton_RecordTemp->setEnabled(true);
         ui->lineEdit_SV2->setEnabled(false);
+        ui->doubleSpinBox_SV2WaitTime->setEnabled(false);
 
         QString title = this->windowTitle();
         this->setWindowTitle(title + " | " + ui->comboBox_SeriesNumber->currentText());
@@ -1356,6 +1359,8 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
         ui->label_TimeStable->setText("Set-temp changes [min] :");
         ui->label_SV_2->setStyleSheet("");
         ui->lineEdit_SV2->setEnabled(false);
+        ui->doubleSpinBox_SV2WaitTime->setEnabled(false);
+        ui->label_SV2WaitTime->setStyleSheet("");
     }else if(index == 0){
         ui->doubleSpinBox_TempTorr->setEnabled(true);
         ui->doubleSpinBox_TempStepSize->setEnabled(true);
@@ -1365,6 +1370,8 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
         ui->label_TimeStable->setText("Temp. stable for [min] :");
         ui->label_SV_2->setStyleSheet("");
         ui->lineEdit_SV2->setEnabled(false);
+        ui->doubleSpinBox_SV2WaitTime->setEnabled(false);
+        ui->label_SV2WaitTime->setStyleSheet("");
     }else if(index == 2){
         ui->doubleSpinBox_TempTorr->setEnabled(false);
         ui->doubleSpinBox_TempStepSize->setEnabled(false);
@@ -1374,6 +1381,8 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
         ui->label_TimeStable->setText("Set-temp rate [min/C] :");
         ui->label_SV_2->setStyleSheet("");
         ui->lineEdit_SV2->setEnabled(false);
+        ui->doubleSpinBox_SV2WaitTime->setEnabled(false);
+        ui->label_SV2WaitTime->setStyleSheet("");
     }else if( index == 3){
         ui->doubleSpinBox_TempTorr->setEnabled(false);
         ui->doubleSpinBox_TempStepSize->setEnabled(false);
@@ -1384,6 +1393,9 @@ void MainWindow::on_comboBox_Mode_currentIndexChanged(int index)
         ui->lineEdit_SV2->setEnabled(true);
         ui->label_SV_2->setStyleSheet("color: #006325");
         ui->lineEdit_SV2->setText("92");
+        ui->doubleSpinBox_SV2WaitTime->setEnabled(true);
+        ui->label_SV2WaitTime->setStyleSheet("color: #006325");
+        ui->doubleSpinBox_SV2WaitTime->setValue(10.);
     }
 }
 
