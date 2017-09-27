@@ -664,6 +664,7 @@ void MainWindow::on_pushButton_Control_clicked()
     panalOnOff(!tempControlOnOff);
     ui->actionOpen_File->setEnabled(!tempControlOnOff);
     ui->pushButton_RecordTemp->setEnabled(!tempControlOnOff);
+    //muteLog = ui->checkBox_MuteLogMsg->isChecked();
 
     if(tempControlOnOff) {
         LogMsg("================ Temperature control =====");
@@ -740,18 +741,18 @@ void MainWindow::on_pushButton_Control_clicked()
         }else if(mode == 4){
             LogMsg("======== Normal + Fixed Rate Mode ==========");
             boxMsg.sprintf("======== Normal + Fixed Rate Mode ========== \n"
-                           "1) go to %5.1f C using normal.\n"
+                           "1) Go to %5.1f C using normal mode.\n"
                            "   Time unknown. \n"
-                           "2) fixed rate to go to %5.1f C\n"
-                           "   fixed-rate Set-temp Gradience   : %6.1f min/C \n"
+                           "2) Fixed rate to go to %5.1f C\n"
+                           "   Fixed-rate Set-temp Gradience   : %6.1f min/C \n"
                            "   Estimated fixed-rate time       : %6.1f min = %6.1f hr",
                            targetValue_2, targetValue,
                            estSlope,
                            estTotalTime, estTotalTime/60.);
         }
-        LogMsg("Estimated tran. Time : " + QString::number(estTransitionTime) + " min.");
-        LogMsg("Estimated gradience  : " + QString::number(estSlope) + " min/C.");
-        LogMsg("Estimated total Time : " + QString::number(estTotalTime) + " min. = " + QString::number(estTotalTime/60.) + " hr.");
+        LogMsg("Estimated transiton Time : " + QString::number(estTransitionTime) + " min.");
+        LogMsg("Estimated gradience      : " + QString::number(estSlope) + " min/C.");
+        LogMsg("Estimated total Time     : " + QString::number(estTotalTime) + " min. = " + QString::number(estTotalTime/60.) + " hr.");
         box.setText(boxMsg);
         box.setInformativeText("Do you want to proceed ?");
         box.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
@@ -769,8 +770,9 @@ void MainWindow::on_pushButton_Control_clicked()
 
         // set output file =================
         QDateTime startTime = QDateTime::currentDateTime();
-        QString fileName = startTime.toString("yyyyMMdd_HHmmss") +
-                "_tempControl_" + ui->comboBox_SeriesNumber->currentText() +".dat";
+        QString fileName = startTime.toString("yyyyMMdd_HHmmss")
+                + "_tempControl_mode" + QString::number(mode)
+                + "_"  + ui->comboBox_SeriesNumber->currentText() +".dat";
         QString filePath = DATA_PATH + "/" + fileName;
         LogMsg("data save to : " + filePath);
         QFile outfile(filePath);
@@ -835,10 +837,10 @@ void MainWindow::on_pushButton_Control_clicked()
         svData.clear();
         mvData.clear();
         muteLog = ui->checkBox_MuteLogMsg->isChecked();
-        bool targetValue_2_notReached = true;
+        bool targetValue_2_Reached = false;
         bool waitTimerStarted = false;
         waitTimer->setSingleShot(true);
-        while(tempControlOnOff && mode == 4 && targetValue_2_notReached){
+        while(tempControlOnOff && mode == 4 && !targetValue_2_Reached){
             getTempTimer.start(tempGetTime);
             askTemperature();
             int i = 0;
@@ -875,19 +877,23 @@ void MainWindow::on_pushButton_Control_clicked()
                 waitForMSec(timing::getTempTimer);
 
                 if(waitTimer->remainingTime() <= 0 && waitTimerStarted == true){
-                    targetValue_2_notReached = false;
+                    targetValue_2_Reached = true; // break the getTemp loop
+
                     muteLog = false;
                     LogMsg("Target Set-temp stable. Start fixed rate. Elapse time : " + QString::number(totalElapse.elapsed()/1000./60) + " mins.");
                     muteLog = ui->checkBox_MuteLogMsg->isChecked();
                     lineout.sprintf("### fixed-rate start.\n");
                     stream << lineout;
                     stream.flush();
+
+                    break; // break this loop
                 }
             }
 
             if(temperature == targetValue_2 && waitTimerStarted == false){
                 waitTimer->start(timing::timeUp);
                 waitTimerStarted = true;
+
                 muteLog = false;
                 LogMsg("Target Set-temp reached : " + QString::number(targetValue_2) + " C. Elapse time : " + QString::number(totalElapse.elapsed()/1000./60) + " mins.");
                 LogMsg("wait for 10 mins.");
