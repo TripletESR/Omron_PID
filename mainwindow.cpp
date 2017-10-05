@@ -2,7 +2,8 @@
 #include "ui_mainwindow.h"
 
 const QString DESKTOP_PATH = QStandardPaths::locate(QStandardPaths::DesktopLocation, QString(), QStandardPaths::LocateDirectory);
-const QString DATA_PATH = DESKTOP_PATH + "Temp_Record";
+const QString DATA_PATH_2 = DESKTOP_PATH + "Temp_Record";
+const QString DATA_PATH = "Z:/triplet/Temp_Record";
 
 enum E5CC_Address{
     // QByteArray::fromHex(QString::number(E5CC_Address::setPoint, 16).toStdString().c_str()
@@ -55,8 +56,17 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //Check Temp Directory, is not exist, create
     QDir myDir;
-    myDir.setPath(DATA_PATH); if( !myDir.exists()) myDir.mkpath(DATA_PATH);
-
+    myDir.setPath(DATA_PATH);
+    // if Z:/triplet/Temp_Record does not exist, make directory on desktop.
+    if( !myDir.exists()) {
+        QMessageBox msgBox;
+        msgBox.setText("Cannot locate Z Drive!\n"
+                       "Please set the NAS to be Z:\n"
+                       "Data will be saved in Desktop/Temp_Record");
+        myDir.mkpath(DATA_PATH_2);
+    }else{
+        LogMsg("Data will be saved in : " + DATA_PATH );
+    }
     plot = ui->plot;
     plot->xAxis->setLabel("Time");
     plot->yAxis->setLabel("Temp. [C]");
