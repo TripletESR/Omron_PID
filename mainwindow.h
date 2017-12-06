@@ -71,6 +71,9 @@ private slots:
 
     void fillDataAndPlot(const QDateTime date, const double PV, const double SV, const double MV);
 
+    void on_actionHelp_Page_triggered();
+    void HelpPicNext();
+
 private:
     Ui::MainWindow *ui;
     QCustomPlot * plot;
@@ -105,6 +108,10 @@ private:
     bool checkDay;
     int dayCounter;
     bool nextSV;
+
+    QDialog * helpDialog;
+    QLabel * HelpLabel;
+    int picNumber;
 };
 
 #endif // MAINWINDOW_H

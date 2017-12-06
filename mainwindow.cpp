@@ -54,6 +54,20 @@ MainWindow::MainWindow(QWidget *parent) :
     waitTimer->setSingleShot(false);
     connect(waitTimer, SIGNAL(timeout()), this, SLOT(allowSetNextSV()));
 
+    helpDialog = new QDialog(this);
+    HelpLabel = new QLabel();
+    helpDialog->setWindowTitle("Help");
+    QImage image(":fig1.PNG");
+    picNumber = 1;
+    HelpLabel->setPixmap(QPixmap::fromImage(image));
+
+    QPushButton * next = new QPushButton("Next");
+    connect(next, SIGNAL(pressed()) , this, SLOT(HelpPicNext()));
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(helpDialog);
+    mainLayout->addWidget(HelpLabel);
+    mainLayout->addWidget(next);
+
     //Check Temp Directory, is not exist, create
     QDir myDir;
     myDir.setPath(DATA_PATH);
@@ -1537,4 +1551,28 @@ void MainWindow::fillDataAndPlot(const QDateTime date, const double PV, const do
 
     plot->replot();
 
+}
+
+void MainWindow::on_actionHelp_Page_triggered()
+{
+    if( helpDialog->isHidden() ){
+        helpDialog->show();
+    }
+}
+
+void MainWindow::HelpPicNext()
+{
+    if( picNumber == 2){
+        QImage image(":fig1.PNG");
+        HelpLabel->setPixmap(QPixmap::fromImage(image));
+        picNumber = 1;
+        return;
+    }
+
+    if( picNumber == 1){
+        QImage image(":fig2.PNG");
+        HelpLabel->setPixmap(QPixmap::fromImage(image));
+        picNumber ++;
+        return;
+    }
 }
